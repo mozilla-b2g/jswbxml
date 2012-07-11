@@ -764,15 +764,6 @@ WBXMLWriter.prototype = {
     return this;
   },
 
-  get buffer() {
-    let buf = new ArrayBuffer(this._pos);
-    let tmp = new Uint8Array(buf);
-    for (let i = 0; i < this._pos; i++)
-      tmp[i] = this._buffer[i];
-    return buf;
-  },
-
-  get bytes() {
-    return new Uint8Array(this._rawbuf, 0, this._pos);
-  },
+  get buffer() this._rawbuf.slice(0, this._pos),
+  get bytes() new Uint8Array(this._rawbuf, 0, this._pos),
 };
