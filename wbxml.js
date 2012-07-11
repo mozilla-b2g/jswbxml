@@ -13,8 +13,14 @@
  * limitations under the License.
  */
 
-// XXX: This might need to change for integration with gaia-email-libs-and-more.
-var WBXML = (function() {
+(function (root, factory) {
+  if (typeof exports === "object")
+    module.exports = factory();
+  else if (typeof define === "function" && define.amd)
+    define(factory);
+  else
+    root.WBXML = factory();
+}(this, function() {
   const __exports__ = [
     "ParseError", "Element", "EndTag", "Text", "Extension",
     "ProcessingInstruction", "Opaque", "Reader", "Writer" ];
@@ -777,4 +783,4 @@ var WBXML = (function() {
   for (let [,exp] in Iterator(__exports__))
     exported[exp] = eval(exp);
   return exported;
-})();
+}));
