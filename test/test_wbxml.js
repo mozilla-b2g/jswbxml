@@ -136,7 +136,7 @@ function test_w3c_simple() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   let cp = codepages.Default.Tags;
   let expectedNodes = [
@@ -182,7 +182,7 @@ function test_w3c_expanded() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   let cp = codepages.Default.Tags;
   let expectedNodes = [
@@ -202,7 +202,7 @@ function test_w3c_expanded() {
   verify_wbxml(r, "1.1", 1, "UTF-8", expectedNodes);
 }
 
-// http://msdn.microsoft.com/en-us/library/ee237245%28v=exchg.80%29
+/*// http://msdn.microsoft.com/en-us/library/ee237245%28v=exchg.80%29
 function test_activesync() {
   let data = binify([
     0x03, 0x01, 0x6A, 0x00, 0x45, 0x5C, 0x4F, 0x50, 0x03, 0x43, 0x6F, 0x6E,
@@ -275,7 +275,7 @@ function test_activesync() {
 
   let r = new WBXML.Reader(data, ActiveSync);
   verify_wbxml(r, "1.3", 1, "UTF-8", expectedNodes);
-}
+}*/
 
 function test_pi() {
   // <?PI?>
@@ -302,7 +302,7 @@ function test_pi() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   let cp = codepages.Default.Tags;
   let expectedNodes = [
@@ -330,7 +330,7 @@ function test_literal_tag() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   // <ROOT>
@@ -414,7 +414,7 @@ function test_literal_attribute() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   // <ROOT>
@@ -447,7 +447,7 @@ function test_literal_pi() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   // <ROOT>
@@ -478,7 +478,7 @@ function test_extension_tag() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   // <ROOT>
@@ -510,7 +510,7 @@ function test_opaque() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   // <ROOT>
@@ -530,21 +530,31 @@ function test_opaque() {
 }
 
 function test_writer_basic() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+
   let w = new WBXML.Writer("1.1", 1, 3);
-  let fh = ActiveSync.FolderHierarchy.Tags;
-  w.stag(fh.FolderSync)
-     .tag(fh.SyncKey, "0")
+  let cp = codepages.Default.Tags;
+  w.stag(cp.ROOT)
+     .tag(cp.CARD, "0")
    .etag();
 
   let expectedNodes = [
-    { type: "STAG", tag: fh.FolderSync, localTagName: "FolderSync" },
-      { type: "STAG", tag: fh.SyncKey, localTagName: "SyncKey" },
+    { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
+      { type: "STAG", tag: cp.CARD, localTagName: "CARD" },
         { type: "TEXT", textContent: "0" },
       { type: "ETAG" },
     { type: "ETAG" },
   ];
 
-  let r = new WBXML.Reader(w, ActiveSync);
+  let r = new WBXML.Reader(w, codepages);
   verify_wbxml(r, "1.1", 1, "US-ASCII", expectedNodes);
 }
 
@@ -563,7 +573,7 @@ function test_writer_attrs() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
   let cpa = codepages.Default.Attrs;
 
@@ -606,7 +616,7 @@ function test_writer_string_table() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
   let cpa = codepages.Default.Attrs;
 
@@ -647,7 +657,7 @@ function test_writer_entity() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
   let ent = WBXML.Writer.ent;
 
@@ -680,7 +690,7 @@ function test_writer_pi() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
   let cpa = codepages.Default.Attrs;
 
@@ -715,7 +725,7 @@ function test_writer_extension_tag() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   let w = new WBXML.Writer("1.1", 1, 3);
@@ -745,7 +755,7 @@ function test_writer_opaque() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
   let w = new WBXML.Writer("1.1", 1, 3);
@@ -773,7 +783,7 @@ function test_stray_text() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   // hi
   // <ROOT>
@@ -807,7 +817,7 @@ function test_stray_etag() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   // <ROOT>
   //   <CARD/>
@@ -830,7 +840,7 @@ function test_multiple_roots() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   // <ROOT>
   //   <CARD/>
@@ -856,7 +866,7 @@ function test_repeated_attrs() {
       },
     }
   };
-  CompileCodepages(codepages);
+  WBXML.CompileCodepages(codepages);
 
   // <ROOT>
   //   <CARD TYPE="foo" TYPE="bar"/>

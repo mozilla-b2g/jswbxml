@@ -22,7 +22,7 @@
     root.WBXML = factory();
 }(this, function() {
   const __exports__ = [
-    "ParseError", "Element", "EndTag", "Text", "Extension",
+    "ParseError", "CompileCodepages", "Element", "EndTag", "Text", "Extension",
     "ProcessingInstruction", "Opaque", "Reader", "Writer" ];
 
   const Tokens = {
@@ -87,6 +87,34 @@
       throw new WBXMLParseError("invalid offset");
     },
   };
+
+  function CompileCodepages(codepages) {
+    codepages.__nsnames__ = {};
+    codepages.__tagnames__ = {};
+    codepages.__attrdata__ = {};
+
+    for (let [name, page] in Iterator(codepages)) {
+      if (name.match(/^__/))
+        continue;
+
+      if (page.Tags) {
+        let [,v] = Iterator(page.Tags).next();
+        codepages.__nsnames__[v >> 8] = name;
+
+        for (let [tag, value] in Iterator(page.Tags))
+          codepages.__tagnames__[value] = tag;
+      }
+
+      if (page.Attrs) {
+        for (let [attr, data] in Iterator(page.Attrs)) {
+          if (!("name" in data))
+            data.name = attr;
+          codepages.__attrdata__[data.value] = data;
+          page.Attrs[attr] = data.value;
+        }
+      }
+    }
+  }
 
   const MIBenum = {
       3: "US-ASCII",
