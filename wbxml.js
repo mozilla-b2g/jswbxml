@@ -775,7 +775,8 @@
       }
     },
 
-    stag: function(tag, ...rest) {
+    stag: function(tag) {
+      let rest = Array.prototype.slice.call(arguments, 1);
       this._writeTag(tag, true, rest);
       return this;
     },
