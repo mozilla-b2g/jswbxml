@@ -647,6 +647,17 @@
 
   Writer.prototype = {
     _write: function(tok) {
+      // Expand the buffer by a factor of two if we ran out of space.
+      if (this._pos == this._buffer.length - 1) {
+        this._rawbuf = new ArrayBuffer(this._rawbuf.byteLength * 2);
+        let buffer = new Uint8Array(this._rawbuf);
+
+        for (let i = 0; i < this._buffer.length; i++)
+          buffer[i] = this._buffer[i];
+
+        this._buffer = buffer;
+      }
+
       this._buffer[this._pos++] = tok;
     },
 
