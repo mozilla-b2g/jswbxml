@@ -282,7 +282,7 @@
         return this._data = [target];
     },
 
-    // TODO: this seems impolite...
+    // XXX: this seems impolite...
     _getAttribute: Element.prototype._getAttribute,
 
     get data() this._getAttribute(this._data),
@@ -326,7 +326,7 @@
           yield self._xml[i];
       })();
 
-      // TODO: only do this once during the constructor?
+      // XXX: only do this once during the constructor?
       let v = this._get_uint8();
       this.version = ((v & 0xf0) + 1).toString() + "." + (v & 0x0f).toString();
       this.pid = this._get_mb_uint32();
@@ -460,7 +460,7 @@
           if (state != States.BODY)
             throw new ParseError("unexpected OPAQUE token");
           let len = this._get_mb_uint32();
-          let s = ""; // TODO: use a typed array here?
+          let s = ""; // XXX: use a typed array here?
           for (let i = 0; i < len; i++)
             s += String.fromCharCode(this._get_uint8());
 
