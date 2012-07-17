@@ -116,7 +116,7 @@
     }
   }
 
-  const MIBenum = {
+  const mib2str = {
       3: "US-ASCII",
       4: "ISO-8859-1",
       5: "ISO-8859-2",
@@ -130,6 +130,12 @@
      13: "ISO-8859-10",
     106: "UTF-8",
   };
+
+  // TODO: Really, we should build our own map here with synonyms for the
+  // various encodings, but this is a step in the right direction.
+  const str2mib = {};
+  for (let [k, v] in Iterator(mib2str))
+    str2mib[v] = k;
 
   function Element(type, tag, codepages) {
     this.type = type;
@@ -305,7 +311,7 @@
       let v = this._get_uint8();
       this.version = ((v & 0xf0) + 1).toString() + "." + (v & 0x0f).toString();
       this.pid = this._get_mb_uint32();
-      this.charset = MIBenum[this._get_mb_uint32()] || "unknown";
+      this.charset = mib2str[this._get_mb_uint32()] || "unknown";
 
       let tbl_len = this._get_mb_uint32();
       let s = "";
@@ -596,9 +602,16 @@
     let [major, minor] = [parseInt(i) for (i of version.split("."))];
     let v = ((major - 1) << 4) + minor;
 
+    let charsetNum = charset;
+    if (typeof charset == "string") {
+      charsetNum = str2mib[charset];
+      if (charsetNum === undefined)
+        throw new Error("unknown charset "+charset);
+    }
+
     this._write(v);
     this._write(pid);
-    this._write(charset);
+    this._write(charsetNum);
     if (strings) {
       let len = strings.reduce(function(x, y) x + y.length + 1, 0);
       this._write_mb_uint32(len);

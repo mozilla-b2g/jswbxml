@@ -532,7 +532,7 @@ function test_writer_basic() {
   };
   WBXML.CompileCodepages(codepages);
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   let cp = codepages.Default.Tags;
   w.stag(cp.ROOT)
      .tag(cp.CARD, "0")
@@ -571,7 +571,7 @@ function test_writer_attrs() {
 
   let a = WBXML.Writer.a;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.stag(cp.ROOT, a(cpa.TYPE, "list"))
      .tag(cp.CARD, a(cpa.TYPE, cpa.VCARD),
                    a(cpa.EMAIL, ["foo@bar", cpa.DOT_COM]))
@@ -615,7 +615,8 @@ function test_writer_string_table() {
   let a = WBXML.Writer.a;
   let str_t = WBXML.Writer.str_t;
 
-  let w = new WBXML.Writer("1.1", 1, 3, ["list", "@example.com", "foo", ", "]);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII",
+                           ["list", "@example.com", "foo", ", "]);
   w.stag(cp.ROOT, a(cpa.TYPE, str_t(0)))
      .tag(cp.CARD, a(cpa.EMAIL, [str_t(18), str_t(5)]), str_t(18))
      .tag(cp.CARD, a(cpa.EMAIL, ["ted", str_t(5)]),
@@ -653,7 +654,7 @@ function test_writer_entity() {
   let cp = codepages.Default.Tags;
   let ent = WBXML.Writer.ent;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.stag(cp.ROOT)
     .tag(cp.CARD, ["Ted", ent(160), "Danson"])
    .etag();
@@ -686,7 +687,7 @@ function test_writer_pi() {
   let cp = codepages.Default.Tags;
   let cpa = codepages.Default.Attrs;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.pi(cpa.PI)
    .stag(cp.ROOT)
      .stag(cp.CARD)
@@ -720,7 +721,7 @@ function test_writer_extension_tag() {
   WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.stag(cp.ROOT)
      .ext("string", 0, "string")
      .ext("integer", 1, 42)
@@ -758,7 +759,7 @@ function test_writer_extension_attr() {
   let a = WBXML.Writer.a;
   let ext = WBXML.Writer.ext;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.stag(cp.ROOT)
      .tag(cp.CARD, a(cpa.TYPE, ext("string", 0, "string")))
      .tag(cp.CARD, a(cpa.TYPE, ["vCard", ext("integer", 1, 42)]))
@@ -796,7 +797,7 @@ function test_writer_opaque() {
   WBXML.CompileCodepages(codepages);
   let cp = codepages.Default.Tags;
 
-  let w = new WBXML.Writer("1.1", 1, 3);
+  let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   w.stag(cp.ROOT)
      .opaque("string")
      .opaque(binify("string"))
