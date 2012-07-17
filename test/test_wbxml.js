@@ -116,8 +116,17 @@ function verify_wbxml(reader, expectedVersion, expectedPid, expectedCharset,
 
       assert_equals(node.localTagName, expected.localTagName);
 
-      for (let [name, value] in node.attributes)
-        assert_attr_equals(value, expected.attributes[name]);
+      for (let attr in node.attributes) {
+        let [namespace, localName] = attr.name.split(":");
+        assert_equals(attr.namespace, namespace);
+        assert_equals(attr.localName, localName);
+
+        let expectedAttr = expected.attributes[attr.name];
+        if (expectedAttr == undefined && namespace == node.namespaceName)
+          expectedAttr = expected.attributes[attr.localName];
+
+        assert_attr_equals(attr.value, expectedAttr);
+      }
 
       if (expected.attributes) {
         for (let [name, value] in Iterator(expected.attributes))
@@ -324,7 +333,7 @@ function test_literal_tag() {
   let expectedNodes = [
     { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
       { type: "TAG", tag: undefined, localTagName: "LITERAL",
-        attributes: { ATTR: "VALUE" } },
+        attributes: { "Default:ATTR": "VALUE" } },
     { type: "ETAG" },
   ];
   let r3 = new WBXML.Reader(data3, codepages);
@@ -343,7 +352,7 @@ function test_literal_tag() {
   let expectedNodes = [
     { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
       { type: "STAG", tag: undefined, localTagName: "LITERAL",
-        attributes: { ATTR: "VALUE" }},
+        attributes: { "Default:ATTR": "VALUE" }},
         { type: "TEXT", textContent: "text" },
       { type: "ETAG" },
     { type: "ETAG" },
@@ -935,9 +944,9 @@ function test_repeated_attrs() {
   // </ROOT>
   // <!-- TYPE="bar" is defined as a LITERAL -->
   let data3 = binify([
-    0x01, 0x01, 0x03, 0x05,  'T',  'Y',  'P',  'E', 0x00, 0x45, 0x86, 0x05,
-    0x03,  'f',  'o',  'o', 0x00, 0x04, 0x00, 0x03,  'b',  'a',  'r', 0x00,
-    0x01, 0x01
+    0x01, 0x01, 0x03, 0x0D,  'D',  'e',  'f',  'a',  'u',  'l',  't',  ':',
+     'T',  'Y',  'P',  'E', 0x00, 0x45, 0x86, 0x05, 0x03,  'f',  'o',  'o',
+    0x00, 0x04, 0x00, 0x03,  'b',  'a',  'r', 0x00, 0x01, 0x01
   ]);
   assert_throws(function() {
     new WBXML.Reader(data3, codepages).dump();

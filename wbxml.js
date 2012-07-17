@@ -139,26 +139,34 @@
 
   function Element(type, tag, codepages) {
     this.type = type;
-    if (typeof tag == "string")
-      this._tagName = tag;
-    else
-      this.tag = tag;
     this._codepages = codepages;
     this._attrs = {};
+
+    if (typeof tag == "string") {
+      let pieces = tag.split(":");
+      if (pieces.length == 1)
+        this.localTagName = pieces[0];
+      else
+        [this.namespaceName, this.localTagName] = pieces;
+    }
+    else {
+      this.tag = tag;
+      Object.defineProperty(this, "namespace", { get: function() {
+        return this.tag >> 8;
+      } });
+      Object.defineProperty(this, "localTag", { get: function() {
+        return this.tag & 0xff;
+      } });
+      Object.defineProperty(this, "namespaceName", { get: function() {
+        return this._codepages.__nsnames__[this.namespace];
+      } });
+      Object.defineProperty(this, "localTagName", { get: function() {
+        return this._codepages.__tagnames__[this.tag];
+      } });
+    }
   }
 
   Element.prototype = {
-    get namespace() this.tag && (this.tag >> 8),
-    get localTag() this.tag && (this.tag & 0xff),
-
-    /* TODO: support LITERAL namespaces; also maybe move those into a separate
-       type? */
-    get namespaceName() {
-      if (this._tagName)
-        return null;
-      return this._codepages.__nsnames__[this.namespace];
-    },
-    get localTagName() this._tagName || this._codepages.__tagnames__[this.tag],
     get tagName() {
       let ns = this.namespaceName;
       ns = ns ? ns + ":" : "";
@@ -166,13 +174,19 @@
     },
 
     get attributes() {
-      for (let [name, pieces] in Iterator(this._attrs))
-        yield [name, this._getAttribute(pieces)];
+      for (let [name, pieces] in Iterator(this._attrs)) {
+        let [namespace, localName] = name.split(":");
+        yield { name: name, namespace: namespace, localName: localName,
+                value: this._getAttribute(pieces) };
+      }
     },
 
     getAttribute: function(attr) {
       if (typeof attr == "number")
         attr = this._codepages.__attrdata__[attr].name;
+      else if (!(attr in this._attrs) && this.namespace != null &&
+               attr.indexOf(":") == -1)
+        attr = this.namespaceName + ":" + attr;
       return this._getAttribute(this._attrs[attr]);
     },
 
@@ -208,8 +222,13 @@
         return this._attrs[attr] = [];
       }
       else {
-        // TODO: qualify with namespace
-        let name = this._codepages.__attrdata__[attr].name;
+        let namespace = attr >> 8;
+        let localAttr = attr & 0xff;
+
+        let localName = this._codepages.__attrdata__[localAttr].name;
+        let namespaceName = this._codepages.__nsnames__[namespace];
+        let name = namespaceName + ":" + localName;
+
         if (name in this._attrs)
           throw new ParseError("attribute "+name+" is repeated");
         return this._attrs[name] = [attr];
