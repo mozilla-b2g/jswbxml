@@ -171,18 +171,28 @@
     },
 
     _getAttribute: function(pieces) {
-      let value = "";
+      let strValue = "";
+      let array = [];
 
       for (let [,hunk] in Iterator(pieces)) {
-        if (hunk instanceof Extension)
-          throw new Error("TODO: support WBXML extension tokens in attributes");
-        else if (typeof hunk == "number")
-          value += this._codepages.__attrdata__[hunk].data || "";
-        else
-          value += hunk;
+        if (hunk instanceof Extension) {
+          if (strValue) {
+            array.push(strValue);
+            strValue = "";
+          }
+          array.push(hunk);
+        }
+        else if (typeof hunk == "number") {
+          strValue += this._codepages.__attrdata__[hunk].data || "";
+        }
+        else {
+          strValue += hunk;
+        }
       }
+      if (strValue)
+        array.push(strValue);
 
-      return value;
+      return array.length == 1 ? array[0] : array;
     },
 
     _addAttribute: function(attr) {

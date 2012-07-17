@@ -52,6 +52,28 @@ function assert_throws(f, type) {
     throw new Error("exception expected, but not found");
 }
 
+function assert_attr_equals(a, b, reason) {
+  let attr_eq = function(a, b) {
+    if (typeof a == "object" && typeof b == "object")
+      return (a.type == b.type && a.subtype == b.subtype &&
+              a.index == b.index && a.value == b.value);
+    else
+      return a == b;
+  }
+
+  let result;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    result = (a.length == b.length);
+    for (let i = 0; i < a.length; i++)
+      result = result && attr_eq(a[i], b[i]);
+  }
+  else {
+    result = attr_eq(a, b);
+  }
+
+  assert(result, reason ? reason : a + " should be equal to " + b);
+}
+
 /**
  * Zip some iterators together to walk through them in lock-step.
  */
@@ -95,11 +117,11 @@ function verify_wbxml(reader, expectedVersion, expectedPid, expectedCharset,
       assert_equals(node.localTagName, expected.localTagName);
 
       for (let [name, value] in node.attributes)
-        assert_equals(value, expected.attributes[name]);
+        assert_attr_equals(value, expected.attributes[name]);
 
       if (expected.attributes) {
         for (let [name, value] in Iterator(expected.attributes))
-          assert_equals(value, node.getAttribute(name));
+          assert_attr_equals(value, node.getAttribute(name));
       }
       break;
     case "TEXT":
@@ -201,81 +223,6 @@ function test_w3c_expanded() {
   let r = new WBXML.Reader(data, codepages);
   verify_wbxml(r, "1.1", 1, "UTF-8", expectedNodes);
 }
-
-/*// http://msdn.microsoft.com/en-us/library/ee237245%28v=exchg.80%29
-function test_activesync() {
-  let data = binify([
-    0x03, 0x01, 0x6A, 0x00, 0x45, 0x5C, 0x4F, 0x50, 0x03, 0x43, 0x6F, 0x6E,
-    0x74, 0x61, 0x63, 0x74, 0x73, 0x00, 0x01, 0x4B, 0x03, 0x32, 0x00, 0x01,
-    0x52, 0x03, 0x32, 0x00, 0x01, 0x4E, 0x03, 0x31, 0x00, 0x01, 0x56, 0x47,
-    0x4D, 0x03, 0x32, 0x3A, 0x31, 0x00, 0x01, 0x5D, 0x00, 0x11, 0x4A, 0x46,
-    0x03, 0x31, 0x00, 0x01, 0x4C, 0x03, 0x30, 0x00, 0x01, 0x4D, 0x03, 0x31,
-    0x00, 0x01, 0x01, 0x00, 0x01, 0x5E, 0x03, 0x46, 0x75, 0x6E, 0x6B, 0x2C,
-    0x20, 0x44, 0x6F, 0x6E, 0x00, 0x01, 0x5F, 0x03, 0x44, 0x6F, 0x6E, 0x00,
-    0x01, 0x69, 0x03, 0x46, 0x75, 0x6E, 0x6B, 0x00, 0x01, 0x00, 0x11, 0x56,
-    0x03, 0x31, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
-  ]);
-
-  let as = ActiveSync.AirSync.Tags;
-  let asb = ActiveSync.AirSyncBase.Tags;
-  let c = ActiveSync.Contacts.Tags;
-  let expectedNodes = [
-    { type: "STAG", tag: as.Sync, localTagName: "Sync" },
-      { type: "STAG", tag: as.Collections, localTagName: "Collections" },
-        { type: "STAG", tag: as.Collection, localTagName: "Collection" },
-          { type: "STAG", tag: as.Class, localTagName: "Class" },
-            { type: "TEXT", textContent: "Contacts" },
-          { type: "ETAG" },
-          { type: "STAG", tag: as.SyncKey, localTagName: "SyncKey" },
-            { type: "TEXT", textContent: "2" },
-          { type: "ETAG" },
-          { type: "STAG", tag: as.CollectionId, localTagName: "CollectionId" },
-            { type: "TEXT", textContent: "2" },
-          { type: "ETAG" },
-          { type: "STAG", tag: as.Status, localTagName: "Status" },
-            { type: "TEXT", textContent: "1" },
-          { type: "ETAG" },
-
-          { type: "STAG", tag: as.Commands, localTagName: "Commands" },
-            { type: "STAG", tag: as.Add, localTagName: "Add" },
-              { type: "STAG", tag: as.ServerId, localTagName: "ServerId" },
-                { type: "TEXT", textContent: "2:1" },
-              { type: "ETAG" },
-              { type: "STAG", tag: as.ApplicationData, localTagName: "ApplicationData" },
-                { type: "STAG", tag: asb.Body, localTagName: "Body" },
-                  { type: "STAG", tag: asb.Type, localTagName: "Type" },
-                    { type: "TEXT", textContent: "1" },
-                  { type: "ETAG" },
-                  { type: "STAG", tag: asb.EstimatedDataSize, localTagName: "EstimatedDataSize" },
-                    { type: "TEXT", textContent: "0" },
-                  { type: "ETAG" },
-                  { type: "STAG", tag: asb.Truncated, localTagName: "Truncated" },
-                    { type: "TEXT", textContent: "1" },
-                  { type: "ETAG" },
-                { type: "ETAG" },
-                { type: "STAG", tag: c.FileAs, localTagName: "FileAs" },
-                  { type: "TEXT", textContent: "Funk, Don" },
-                { type: "ETAG" },
-                { type: "STAG", tag: c.FirstName, localTagName: "FirstName" },
-                  { type: "TEXT", textContent: "Don" },
-                { type: "ETAG" },
-                { type: "STAG", tag: c.LastName, localTagName: "LastName" },
-                  { type: "TEXT", textContent: "Funk" },
-                { type: "ETAG" },
-                { type: "STAG", tag: asb.NativeBodyType, localTagName: "NativeBodyType" },
-                  { type: "TEXT", textContent: "1" },
-                { type: "ETAG" },
-              { type: "ETAG" },
-            { type: "ETAG" },
-          { type: "ETAG" },
-        { type: "ETAG" },
-      { type: "ETAG" },
-    { type: "ETAG" },
-  ];
-
-  let r = new WBXML.Reader(data, ActiveSync);
-  verify_wbxml(r, "1.3", 1, "UTF-8", expectedNodes);
-}*/
 
 function test_pi() {
   // <?PI?>
@@ -482,9 +429,9 @@ function test_extension_tag() {
   let cp = codepages.Default.Tags;
 
   // <ROOT>
-  //   EXT_I_0 string
-  //   EXT_T_1 42
-  //   EXT_2
+  //   (EXT_I_0 string)
+  //   (EXT_T_1 42)
+  //   (EXT_2)
   // </ROOT>
   let data = binify([
     0x01, 0x01, 0x03, 0x00, 0x45, 0x40,  's',  't',  'r',  'i',  'n',  'g',
@@ -495,6 +442,51 @@ function test_extension_tag() {
       { type: "EXT", subtype: "string", index: 0, value: "string" },
       { type: "EXT", subtype: "integer", index: 1, value: 42 },
       { type: "EXT", subtype: "byte", index: 2, value: null },
+    { type: "ETAG" },
+  ];
+  let r = new WBXML.Reader(data, codepages);
+  verify_wbxml(r, "1.1", 1, "US-ASCII", expectedNodes);
+}
+
+function test_extension_attr() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+      Attrs: {
+        TYPE:      { value: 0x05 },
+        TYPE_LIST: { value: 0x06, name: "TYPE", data: "LIST" },
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+
+  // <ROOT>
+  //   <CARD TYPE="(EXT_I_0 string)"/>
+  //   <CARD TYPE="vCard(EXT_T_1 42)"/>
+  //   <CARD TYPE="LIST(EXT_2)"/>
+  // </ROOT>
+  let data = binify([
+    0x01, 0x01, 0x03, 0x00, 0x45, 0x86, 0x05, 0x40,  's',  't',  'r',  'i',
+     'n',  'g', 0x00, 0x01, 0x86, 0x05, 0x03,  'v',  'C',  'a',  'r',  'd',
+    0x00, 0x81, 0x2A, 0x01, 0x86, 0x06, 0xC2, 0x01, 0x01
+  ]);
+  let expectedNodes = [
+    { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: { type: "EXT", subtype: "string", index: 0,
+                              value: "string" } } },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: ["vCard",
+                             { type: "EXT", subtype: "integer", index: 1,
+                               value: 42 }] } },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: ["LIST",
+                             { type: "EXT", subtype: "byte", index: 2,
+                               value: null }] } },
     { type: "ETAG" },
   ];
   let r = new WBXML.Reader(data, codepages);
@@ -740,6 +732,52 @@ function test_writer_extension_tag() {
       { type: "EXT", subtype: "string", index: 0, value: "string" },
       { type: "EXT", subtype: "integer", index: 1, value: 42 },
       { type: "EXT", subtype: "byte", index: 2, value: null },
+    { type: "ETAG" },
+  ];
+  let r = new WBXML.Reader(w, codepages);
+  verify_wbxml(r, "1.1", 1, "US-ASCII", expectedNodes);
+}
+
+function test_writer_extension_attr() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+      Attrs: {
+        TYPE:      { value: 0x05 },
+        TYPE_LIST: { value: 0x06, name: "TYPE", data: "LIST" },
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+  let cpa = codepages.Default.Attrs;
+
+  let a = WBXML.Writer.a;
+  let ext = WBXML.Writer.ext;
+
+  let w = new WBXML.Writer("1.1", 1, 3);
+  w.stag(cp.ROOT)
+     .tag(cp.CARD, a(cpa.TYPE, ext("string", 0, "string")))
+     .tag(cp.CARD, a(cpa.TYPE, ["vCard", ext("integer", 1, 42)]))
+     .tag(cp.CARD, a(cpa.TYPE_LIST, ext("byte", 2)))
+   .etag();
+
+  let expectedNodes = [
+    { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: { type: "EXT", subtype: "string", index: 0,
+                              value: "string" } } },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: ["vCard",
+                             { type: "EXT", subtype: "integer", index: 1,
+                               value: 42 }] } },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD",
+        attributes: { TYPE: ["LIST",
+                             { type: "EXT", subtype: "byte", index: 2,
+                               value: null }] } },
     { type: "ETAG" },
   ];
   let r = new WBXML.Reader(w, codepages);
