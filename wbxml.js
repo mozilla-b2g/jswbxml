@@ -151,18 +151,16 @@
     }
     else {
       this.tag = tag;
-      Object.defineProperty(this, "namespace", { get: function() {
-        return this.tag >> 8;
-      } });
-      Object.defineProperty(this, "localTag", { get: function() {
-        return this.tag & 0xff;
-      } });
-      Object.defineProperty(this, "namespaceName", { get: function() {
-        return this._codepages.__nsnames__[this.namespace];
-      } });
-      Object.defineProperty(this, "localTagName", { get: function() {
-        return this._codepages.__tagnames__[this.tag];
-      } });
+      Object.defineProperties(this, {
+        "namespace":     { get: function() this.tag >> 8 },
+        "localTag":      { get: function() this.tag & 0xff },
+        "namespaceName": { get: function() {
+          return this._codepages.__nsnames__[this.namespace];
+        } },
+        "localTagName":  { get: function() {
+          return this._codepages.__tagnames__[this.tag];
+        } },
+      });
     }
   }
 
