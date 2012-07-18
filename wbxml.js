@@ -400,6 +400,10 @@
         // here.
       };
 
+      // Beware! We're going to grab multiple tokens from our iterator inside
+      // this for loop. This simplifies the actual structure of the loop quite a
+      // bit, since we can eat as many tokens as we need to for each logical
+      // chunk of the document.
       for (let tok in this._iter) {
         if (tok == Tokens.SWITCH_PAGE) {
           codepage = this._get_uint8();
