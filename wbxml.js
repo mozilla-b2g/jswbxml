@@ -337,6 +337,8 @@
       for (let j = 0; j < tbl_len; j++)
         s += String.fromCharCode(this._get_uint8());
       this.strings = new StringTable(s);
+
+      this.document = this._getDocument();
     },
 
     // start        = version publicid charset strtbl body
@@ -371,7 +373,7 @@
     // index        = mb_u_int32            // integer index into string table.
     // length       = mb_u_int32            // integer length.
     // zero         = u_int8                // containing the value zero (0).
-    get document() {
+    _getDocument: function() {
       // Parser states
       const States = {
         BODY: 0,
