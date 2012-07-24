@@ -736,6 +736,9 @@
     },
 
     _writeTag: function(tag, stag, attrs) {
+      if (tag === undefined)
+        throw new Error("unknown tag");
+
       let flags = 0x00;
       if (stag)
         flags += 0x40;
@@ -811,7 +814,7 @@
 
     tag: function(tag) {
       let tail = arguments.length > 1 ? arguments[arguments.length - 1] : null;
-      if (tail instanceof Writer.Attribute) {
+      if (tail === null || tail instanceof Writer.Attribute) {
         let rest = Array.prototype.slice.call(arguments, 1);
         this._writeTag(tag, false, rest);
         return this;
