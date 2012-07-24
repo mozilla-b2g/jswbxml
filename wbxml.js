@@ -137,8 +137,8 @@
   for (let [k, v] in Iterator(mib2str))
     str2mib[v] = k;
 
-  function Element(ownerDoc, type, tag) {
-    this.ownerDocument = ownerDoc;
+  function Element(ownerDocument, type, tag) {
+    this.ownerDocument = ownerDocument;
     this.type = type;
     this._attrs = {};
 
@@ -236,16 +236,16 @@
     },
   };
 
-  function EndTag(ownerDoc) {
-    this.ownerDocument = ownerDoc;
+  function EndTag(ownerDocument) {
+    this.ownerDocument = ownerDocument;
   }
 
   EndTag.prototype = {
     get type() "ETAG",
   };
 
-  function Text(ownerDoc, textContent) {
-    this.ownerDocument = ownerDoc;
+  function Text(ownerDocument, textContent) {
+    this.ownerDocument = ownerDocument;
     this.textContent = textContent;
   }
 
@@ -253,8 +253,8 @@
     get type() "TEXT",
   };
 
-  function Extension(ownerDoc, subtype, index, value) {
-    this.ownerDocument = ownerDoc;
+  function Extension(ownerDocument, subtype, index, value) {
+    this.ownerDocument = ownerDocument;
     this.subtype = subtype;
     this.index = index;
     this.value = value;
@@ -264,8 +264,8 @@
     get type() "EXT",
   };
 
-  function ProcessingInstruction(ownerDoc) {
-    this.ownerDocument = ownerDoc;
+  function ProcessingInstruction(ownerDocument) {
+    this.ownerDocument = ownerDocument;
   }
 
   ProcessingInstruction.prototype = {
@@ -292,8 +292,8 @@
     get data() this._getAttribute(this._data),
   };
 
-  function Opaque(ownerDoc, data) {
-    this.ownerDocument = ownerDoc;
+  function Opaque(ownerDocument, data) {
+    this.ownerDocument = ownerDocument;
     this.data = data;
   }
 
