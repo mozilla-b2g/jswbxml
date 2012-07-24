@@ -105,6 +105,7 @@ function verify_wbxml(reader, expectedVersion, expectedPid, expectedCharset,
 
   for (let [node, expected] in
        zip( reader.document, (expectedNodes[i] for (i in expectedNodes)) )) {
+    assert_equals(node.ownerDocument, reader);
     assert_equals(node.type, expected.type);
 
     switch (node.type) {
