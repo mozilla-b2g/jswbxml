@@ -607,6 +607,9 @@
             result += " " + node.data;
           result += "?>\n";
         }
+        else if (node.type == "OPAQUE") {
+          result += indent(tagstack.length) + "<![CDATA[" + node.data + "]]n";
+        }
         else {
           throw new Error("Unknown node type \"" + node.type + "\"");
         }
