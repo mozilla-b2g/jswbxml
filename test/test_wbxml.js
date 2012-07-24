@@ -544,11 +544,13 @@ function test_writer_basic() {
   let w = new WBXML.Writer("1.1", 1, "US-ASCII");
   let cp = codepages.Default.Tags;
   w.stag(cp.ROOT)
+     .tag(cp.CARD)
      .tag(cp.CARD, "0")
    .etag();
 
   let expectedNodes = [
     { type: "STAG", tag: cp.ROOT, localTagName: "ROOT" },
+      { type: "TAG", tag: cp.CARD, localTagName: "CARD" },
       { type: "STAG", tag: cp.CARD, localTagName: "CARD" },
         { type: "TEXT", textContent: "0" },
       { type: "ETAG" },
