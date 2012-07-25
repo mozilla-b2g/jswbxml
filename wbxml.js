@@ -631,7 +631,7 @@
     this._pos = 0;
     this._codepage = 0;
 
-    let [major, minor] = version.split(".").map(parseInt);
+    let [major, minor] = version.split(".").map(function(x) parseInt(x));
     let v = ((major - 1) << 4) + minor;
 
     let charsetNum = charset;
