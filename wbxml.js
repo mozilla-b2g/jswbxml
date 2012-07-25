@@ -23,7 +23,7 @@
 }(this, function() {
   const __exports__ = [
     "ParseError", "CompileCodepages", "Element", "EndTag", "Text", "Extension",
-    "ProcessingInstruction", "Opaque", "Reader", "Writer" ];
+    "ProcessingInstruction", "Opaque", "Reader", "Writer", "EventParser" ];
 
   const Tokens = {
     SWITCH_PAGE: 0x00,
@@ -875,6 +875,84 @@
 
     get buffer() this._rawbuf.slice(0, this._pos),
     get bytes() new Uint8Array(this._rawbuf, 0, this._pos),
+  };
+
+  function EventParser(reader) {
+    this.listeners = [];
+  }
+
+  EventParser.prototype = {
+    addEventListener: function(path, callback) {
+      this.listeners.push({path: path, callback: callback});
+    },
+
+    _pathMatches: function(a, b) {
+      return a.length == b.length && a.every(function(val, i) {
+        if (b[i] == "*")
+          return true;
+        else if (Array.isArray(b[i])) {
+          return b[i].indexOf(val) != -1;
+        }
+        else
+          return val == b[i];
+      });
+    },
+
+    run: function(reader) {
+      let fullPath = [];
+      let recPath = [];
+      let recording = 0;
+
+      for (let node in reader.document) {
+        if (node.type == "TAG") {
+          fullPath.push(node.tag);
+          for (let [,listener] in Iterator(this.listeners)) {
+            if (this._pathMatches(fullPath, listener.path)) {
+              node.children = [];
+              listener.callback(node);
+            }
+          }
+
+          fullPath.pop();
+        }
+        else if (node.type == "STAG") {
+          fullPath.push(node.tag);
+
+          for (let [,listener] in Iterator(this.listeners)) {
+            if (this._pathMatches(fullPath, listener.path)) {
+              recording++;
+            }
+          }
+        }
+        else if (node.type == "ETAG") {
+          for (let [,listener] in Iterator(this.listeners)) {
+            if (this._pathMatches(fullPath, listener.path)) {
+              recording--;
+              listener.callback(recPath[recPath.length-1]);
+            }
+          }
+
+          fullPath.pop();
+        }
+
+        if (recording) {
+          if (node.type == "STAG") {
+            node.type = "TAG";
+            node.children = [];
+            if (recPath.length)
+              recPath[recPath.length-1].children.push(node);
+            recPath.push(node);
+          }
+          else if (node.type == "ETAG") {
+            recPath.pop();
+          }
+          else {
+            node.children = [];
+            recPath[recPath.length-1].children.push(node);
+          }
+        }
+      }
+    },
   };
 
   let exported = {};
