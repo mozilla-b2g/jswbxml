@@ -28,134 +28,8 @@ function binify(src) {
   return dest;
 }
 
-function print(s) {
-  let output = document.getElementById('output');
-  output.textContent += s;
-}
-
-function assert(expr, reason) {
-  if (!expr)
-    throw new Error(reason);
-}
-
-function assert_equals(a, b, reason) {
-  assert(a == b, reason ? reason : a + ' should be equal to ' + b);
-}
-
-function assert_throws(f, type) {
-  let threw = false;
-  try {
-    f();
-  }
-  catch (e if !type || e instanceof type) {
-    threw = true;
-  }
-  if (!threw)
-    throw new Error('exception expected, but not found');
-}
-
-function assert_attr_equals(a, b, reason) {
-  let attr_eq = function(a, b) {
-    if (typeof a == 'object' && typeof b == 'object')
-      return (a.type == b.type && a.subtype == b.subtype &&
-              a.index == b.index && a.value == b.value);
-    else
-      return a == b;
-  }
-
-  let result;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    result = (a.length == b.length);
-    for (let i = 0; i < a.length; i++)
-      result = result && attr_eq(a[i], b[i]);
-  }
-  else {
-    result = attr_eq(a, b);
-  }
-
-  assert(result, reason ? reason : a + ' should be equal to ' + b);
-}
-
-/**
- * Zip some iterators together to walk through them in lock-step.
- */
-function zip() {
-  while (true) {
-    let ends = 0;
-    let step = []
-    for (let i = 0; i < arguments.length; i++) {
-      try {
-        step.push(arguments[i].next());
-      } catch (e if e instanceof StopIteration) {
-        ends++;
-      }
-    }
-    if (ends == arguments.length)
-      throw StopIteration;
-    else if (ends != 0)
-      throw new Error('Zipped iterators have differing lengths!');
-
-    yield step;
-  }
-}
-
-function verify_wbxml(reader, expectedVersion, expectedPid, expectedCharset,
-                      expectedNodes) {
-  assert_equals(reader.version, expectedVersion);
-  assert_equals(reader.pid, expectedPid);
-  assert_equals(reader.charset, expectedCharset);
-
-  for (let [node, expected] in
-       zip( reader.document, (expectedNodes[i] for (i in expectedNodes)) )) {
-    assert_equals(node.ownerDocument, reader);
-    assert_equals(node.type, expected.type);
-
-    switch (node.type) {
-    case 'STAG':
-    case 'TAG':
-      assert_equals(node.tag, expected.tag);
-      assert_equals(node.localTag, expected.tag && (expected.tag & 0xff));
-      assert_equals(node.namespace, expected.tag && (expected.tag >> 8));
-
-      assert_equals(node.localTagName, expected.localTagName);
-
-      for (let attr in node.attributes) {
-        let [namespace, localName] = attr.name.split(':');
-        assert_equals(attr.namespace, namespace);
-        assert_equals(attr.localName, localName);
-
-        let expectedAttr = expected.attributes[attr.name];
-        if (expectedAttr == undefined && namespace == node.namespaceName)
-          expectedAttr = expected.attributes[attr.localName];
-
-        assert_attr_equals(attr.value, expectedAttr);
-      }
-
-      if (expected.attributes) {
-        for (let [name, value] in Iterator(expected.attributes))
-          assert_attr_equals(value, node.getAttribute(name));
-      }
-      break;
-    case 'TEXT':
-      assert_equals(node.textContent, expected.textContent);
-      break;
-    case 'PI':
-      assert_equals(node.target, expected.target);
-      assert_equals(node.data, expected.data);
-      break;
-    case 'EXT':
-      assert_equals(node.subtype, expected.subtype);
-      assert_equals(node.index, expected.index);
-      assert_equals(node.value, expected.value);
-      break;
-    case 'OPAQUE':
-      assert_equals(node.data, expected.data);
-    }
-  }
-}
-
 // http://www.w3.org/TR/wbxml/#_Toc443384926
-function test_w3c_simple() {
+function test_reader_w3c_simple() {
   let data = binify([
     0x01, 0x01, 0x03, 0x00, 0x47, 0x46, 0x03,  ' ',  'X',  ' ',  '&',  ' ',
      'Y', 0x00, 0x05, 0x03,  ' ',  'X', 0x00, 0x02, 0x81, 0x20, 0x03,  '=',
@@ -184,11 +58,11 @@ function test_w3c_simple() {
   ];
 
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
 // http://www.w3.org/TR/wbxml/#_Toc443384927
-function test_w3c_expanded() {
+function test_reader_w3c_expanded() {
   let data = binify([
     0x01, 0x01, 0x6A, 0x12,  'a',  'b',  'c', 0x00,  ' ',  'E',  'n',  't',
      'e',  'r',  ' ',  'n',  'a',  'm',  'e',  ':',  ' ', 0x00, 0x47, 0xC5,
@@ -233,10 +107,10 @@ function test_w3c_expanded() {
   ];
 
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'UTF-8', expectedNodes);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
 }
 
-function test_pi() {
+function test_reader_pi() {
   // <?PI?>
   // <XYZ>
   //   <CARD>
@@ -275,10 +149,10 @@ function test_pi() {
   ];
 
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_literal_tag() {
+function test_reader_literal_tag() {
   let codepages = {
     Default: {
       Tags: {
@@ -305,7 +179,7 @@ function test_literal_tag() {
     { type: 'ETAG' },
   ];
   let r1 = new WBXML.Reader(data1, codepages);
-  verify_wbxml(r1, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r1, '1.1', 1, 'US-ASCII', expectedNodes);
 
   // <ROOT>
   //   <LITERAL>
@@ -324,7 +198,7 @@ function test_literal_tag() {
     { type: 'ETAG' },
   ];
   let r2 = new WBXML.Reader(data2, codepages);
-  verify_wbxml(r2, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r2, '1.1', 1, 'US-ASCII', expectedNodes);
 
   // <ROOT>
   //   <LITERAL ATTR="VALUE"/>
@@ -340,7 +214,7 @@ function test_literal_tag() {
     { type: 'ETAG' },
   ];
   let r3 = new WBXML.Reader(data3, codepages);
-  verify_wbxml(r3, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r3, '1.1', 1, 'US-ASCII', expectedNodes);
 
   // <ROOT>
   //   <LITERAL ATTR="VALUE">
@@ -361,10 +235,10 @@ function test_literal_tag() {
     { type: 'ETAG' },
   ];
   let r4 = new WBXML.Reader(data4, codepages);
-  verify_wbxml(r4, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r4, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_literal_attribute() {
+function test_reader_literal_attribute() {
   let codepages = {
     Default: {
       Tags: {
@@ -394,10 +268,10 @@ function test_literal_attribute() {
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_literal_pi() {
+function test_reader_literal_pi() {
   let codepages = {
     Default: {
       Tags: {
@@ -425,10 +299,10 @@ function test_literal_pi() {
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_extension_tag() {
+function test_reader_extension_tag() {
   let codepages = {
     Default: {
       Tags: {
@@ -457,10 +331,10 @@ function test_extension_tag() {
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_extension_attr() {
+function test_reader_extension_attr() {
   let codepages = {
     Default: {
       Tags: {
@@ -502,10 +376,10 @@ function test_extension_attr() {
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_opaque() {
+function test_reader_opaque() {
   let codepages = {
     Default: {
       Tags: {
@@ -530,304 +404,10 @@ function test_opaque() {
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
-function test_writer_basic() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  let cp = codepages.Default.Tags;
-  w.stag(cp.ROOT)
-     .tag(cp.CARD)
-     .tag(cp.CARD, '0')
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD' },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
-        { type: 'TEXT', textContent: '0' },
-      { type: 'ETAG' },
-    { type: 'ETAG' },
-  ];
-
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_attrs() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-      Attrs: {
-        TYPE:    { value: 0x05 },
-        EMAIL:   { value: 0x06 },
-        VCARD:   { value: 0x85, data: 'vCard' },
-        DOT_COM: { value: 0x86, data: '.com' },
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
-
-  let a = WBXML.Writer.a;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.stag(cp.ROOT, a(cpa.TYPE, 'list'))
-     .tag(cp.CARD, a(cpa.TYPE, cpa.VCARD),
-                   a(cpa.EMAIL, ['foo@bar', cpa.DOT_COM]))
-     .tag(cp.CARD, a(cpa.TYPE, cpa.VCARD),
-                   a(cpa.EMAIL, ['bob@bob', cpa.DOT_COM]), 'Bob')
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT',
-      attributes: { TYPE: 'list' } },
-      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { TYPE: 'vCard', EMAIL: 'foo@bar.com' } },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { TYPE: 'vCard', EMAIL: 'bob@bob.com' } },
-        { type: 'TEXT', textContent: 'Bob' },
-      { type: 'ETAG' },
-    { type: 'ETAG' },
-  ];
-
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_string_table() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-      Attrs: {
-        TYPE:  { value: 0x05 },
-        EMAIL: { value: 0x06 },
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
-
-  let a = WBXML.Writer.a;
-  let str_t = WBXML.Writer.str_t;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII',
-                           ['list', '@example.com', 'foo', ', ']);
-  w.stag(cp.ROOT, a(cpa.TYPE, str_t(0)))
-     .tag(cp.CARD, a(cpa.EMAIL, [str_t(18), str_t(5)]), str_t(18))
-     .tag(cp.CARD, a(cpa.EMAIL, ['ted', str_t(5)]),
-          ['Danson', str_t(22), 'Ted'])
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT',
-      attributes: { TYPE: 'list' } },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { EMAIL: 'foo@example.com' } },
-        { type: 'TEXT', textContent: 'foo' },
-      { type: 'ETAG' },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { EMAIL: 'ted@example.com' } },
-        { type: 'TEXT', textContent: 'Danson, Ted' },
-      { type: 'ETAG' },
-    { type: 'ETAG' },
-  ];
-
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_entity() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let ent = WBXML.Writer.ent;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.stag(cp.ROOT)
-    .tag(cp.CARD, ['Ted', ent(160), 'Danson'])
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
-        { type: 'TEXT', textContent: 'Ted&#160;Danson' },
-      { type: 'ETAG' },
-    { type: 'ETAG' },
-  ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_pi() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-      Attrs: {
-        PI:  { value: 0x05 },
-        PI2: { value: 0x06, name: 'PI', data: 'PREFIX' },
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.pi(cpa.PI)
-   .stag(cp.ROOT)
-     .stag(cp.CARD)
-     .pi(cpa.PI2)
-     .etag()
-   .etag()
-   .pi(cpa.PI, 'END');
-
-  let expectedNodes = [
-    { type: 'PI', target: 'PI', data: ''},
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
-        { type: 'PI', target: 'PI', data: 'PREFIX' },
-      { type: 'ETAG' },
-    { type: 'ETAG' },
-    { type: 'PI', target: 'PI', data: 'END' },
-  ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_extension_tag() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.stag(cp.ROOT)
-     .ext('string', 0, 'string')
-     .ext('integer', 1, 42)
-     .ext('byte', 2)
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'EXT', subtype: 'string', index: 0, value: 'string' },
-      { type: 'EXT', subtype: 'integer', index: 1, value: 42 },
-      { type: 'EXT', subtype: 'byte', index: 2, value: null },
-    { type: 'ETAG' },
-  ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_extension_attr() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-      Attrs: {
-        TYPE:      { value: 0x05 },
-        TYPE_LIST: { value: 0x06, name: 'TYPE', data: 'LIST' },
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
-
-  let a = WBXML.Writer.a;
-  let ext = WBXML.Writer.ext;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.stag(cp.ROOT)
-     .tag(cp.CARD, a(cpa.TYPE, ext('string', 0, 'string')))
-     .tag(cp.CARD, a(cpa.TYPE, ['vCard', ext('integer', 1, 42)]))
-     .tag(cp.CARD, a(cpa.TYPE_LIST, ext('byte', 2)))
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { TYPE: { type: 'EXT', subtype: 'string', index: 0,
-                              value: 'string' } } },
-      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { TYPE: ['vCard',
-                             { type: 'EXT', subtype: 'integer', index: 1,
-                               value: 42 }] } },
-      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
-        attributes: { TYPE: ['LIST',
-                             { type: 'EXT', subtype: 'byte', index: 2,
-                               value: null }] } },
-    { type: 'ETAG' },
-  ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_writer_opaque() {
-  let codepages = {
-    Default: {
-      Tags: {
-        ROOT: 0x05,
-        CARD: 0x06,
-      },
-    }
-  };
-  WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  w.stag(cp.ROOT)
-     .opaque('string')
-     .opaque(binify('string'))
-   .etag();
-
-  let expectedNodes = [
-    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'OPAQUE', data: 'string' },
-      { type: 'OPAQUE', data: 'string' },
-    { type: 'ETAG' },
-  ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_wbxml(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
-
-function test_stray_text() {
+function test_reader_stray_text() {
   let codepages = {
     Default: {
       Tags: {
@@ -861,7 +441,7 @@ function test_stray_text() {
   }, WBXML.ParseError);
 }
 
-function test_stray_etag() {
+function test_reader_stray_etag() {
   let codepages = {
     Default: {
       Tags: {
@@ -884,7 +464,7 @@ function test_stray_etag() {
   }, WBXML.ParseError);
 }
 
-function test_multiple_roots() {
+function test_reader_multiple_roots() {
   let codepages = {
     Default: {
       Tags: {
@@ -907,7 +487,7 @@ function test_multiple_roots() {
   }, WBXML.ParseError);
 }
 
-function test_repeated_attrs() {
+function test_reader_repeated_attrs() {
   let codepages = {
     Default: {
       Tags: {
@@ -957,23 +537,3 @@ function test_repeated_attrs() {
     new WBXML.Reader(data3, codepages).dump();
   }, WBXML.ParseError);
 }
-
-window.addEventListener('load', function() {
-  let pass = 0, fail = 0;
-  for (let i in window) {
-    if (i.match(/^test_/)) {
-      try {
-        window[i]();
-        print(i + ' PASSED\n');
-        pass++;
-      }
-      catch(e) {
-        print(i + ' FAILED: ' + e + '\n');
-        print(e.stack.replace(/^(.)/mg, '  $1'));
-        fail++;
-      }
-    }
-  }
-
-  print('\nPassed: ' + pass + ' Failed: ' + fail + '\n');
-}, false);
