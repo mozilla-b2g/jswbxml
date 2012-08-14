@@ -70,3 +70,56 @@ function test_event_basic() {
   });
   e2.run(new WBXML.Reader(w2, codepages));
 }
+
+function test_event_overlapped() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+        FIELD: 0x07,
+      },
+      Attrs: {
+        TYPE: { value: 0x05 },
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+  let cpa = codepages.Default.Attrs;
+
+  let a = WBXML.Writer.a;
+
+  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  w.stag(cp.ROOT)
+     .stag(cp.CARD)
+       .tag(cp.FIELD, a(cpa.TYPE, 'NAME'), 'Anne')
+       .text('anne@anne.com')
+     .etag()
+   .etag();
+
+  let e = new WBXML.EventParser();
+
+  e.addEventListener([cp.ROOT, cp.CARD], function(subdoc) {
+    let expectedSubdoc =
+      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD', children: [
+        { type: 'TAG', tag: cp.FIELD, localTagName: 'FIELD',
+          attributes: { TYPE: 'NAME' }, children: [
+            { type: 'TEXT', textContent: 'Anne' },
+          ] },
+        { type: 'TEXT', textContent: 'anne@anne.com' },
+      ]};
+    verify_subdocument(subdoc, expectedSubdoc);
+  });
+
+  e.addEventListener([cp.ROOT, cp.CARD, cp.FIELD], function(subdoc) {
+    let expectedSubdoc =
+      { type: 'TAG', tag: cp.FIELD, localTagName: 'FIELD',
+        attributes: { TYPE: 'NAME' }, children: [
+          { type: 'TEXT', textContent: 'Anne' },
+        ] };
+    verify_subdocument(subdoc, expectedSubdoc);
+  });
+
+  e.run(new WBXML.Reader(w, codepages));
+}
