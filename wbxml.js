@@ -632,6 +632,7 @@
     this._buffer = new Uint8Array(this._rawbuf);
     this._pos = 0;
     this._codepage = 0;
+    this._tagStack = [];
 
     let [major, minor] = version.split('.').map(function(x) parseInt(x));
     let v = ((major - 1) << 4) + minor;
@@ -838,10 +839,17 @@
     stag: function(tag) {
       let rest = Array.prototype.slice.call(arguments, 1);
       this._writeTag(tag, true, rest);
+      this._tagStack.push(tag);
       return this;
     },
 
     etag: function(tag) {
+      if (this._tagStack.length === 0)
+        throw new Error('Spurious etag() call!');
+      let expectedTag = this._tagStack.pop();
+      if (tag !== undefined && tag !== expectedTag)
+        throw new Error('Closed the wrong tag');
+
       this._write(Tokens.END);
       return this;
     },

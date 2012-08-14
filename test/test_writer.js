@@ -308,3 +308,61 @@ function test_writer_opaque() {
   let r = new WBXML.Reader(w, codepages);
   verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
+
+function test_writer_unexpected_etag() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+
+  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  w.stag(cp.ROOT)
+     .tag(cp.CARD)
+   .etag();
+  assert_throws(function() {
+     w.etag();
+  }, Error);
+}
+
+function test_writer_check_etag() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+
+  // Test that checking the tag in etag works.
+  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  w.stag(cp.ROOT)
+     .stag(cp.CARD)
+     .etag(cp.CARD)
+   .etag(cp.ROOT);
+
+  let expectedNodes = [
+    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
+      { type: 'ETAG' },
+    { type: 'ETAG' },
+  ];
+  let r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
+
+  // Test that checking the tag in etag fails when you specify the wrong tag.
+  let w2 = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  w.stag(cp.ROOT)
+     .stag(cp.CARD);
+  assert_throws(function() {
+    w.etag(cp.ROOT);
+  }, Error);
+}
