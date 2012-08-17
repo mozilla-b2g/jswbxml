@@ -69,10 +69,10 @@ function test_writer_attrs() {
 
   let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
   w.stag(cp.ROOT, a(cpa.TYPE, 'list'))
-     .tag(cp.CARD, a(cpa.TYPE, cpa.VCARD),
-                   a(cpa.EMAIL, ['foo@bar', cpa.DOT_COM]))
-     .tag(cp.CARD, a(cpa.TYPE, cpa.VCARD),
-                   a(cpa.EMAIL, ['bob@bob', cpa.DOT_COM]), 'Bob')
+     .tag(cp.CARD, a(cpa.TYPE, a(cpa.VCARD)),
+                   a(cpa.EMAIL, ['foo@bar', a(cpa.DOT_COM)]))
+     .tag(cp.CARD, a(cpa.TYPE, a(cpa.VCARD)),
+                   a(cpa.EMAIL, ['bob@bob', a(cpa.DOT_COM)]), 'Bob')
    .etag();
 
   let expectedNodes = [
