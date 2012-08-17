@@ -86,7 +86,9 @@ function zip() {
   }
 }
 
-function iter_values(obj) (val for ( [key, val] in Iterator(obj || []) ));
+function iter_values(obj) {
+  return (val for ( [key, val] in Iterator(obj || []) ));
+}
 
 function verify_node(actual, expected) {
   assert_equals(actual.type, expected.type);

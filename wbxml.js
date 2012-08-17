@@ -575,7 +575,9 @@
 
       if (indentation === undefined)
         indentation = 2;
-      let indent = function(level) new Array(level*indentation + 1).join(' ');
+      let indent = function(level) {
+        return new Array(level*indentation + 1).join(' ');
+      };
       let tagstack = [];
 
       if (header) {
@@ -634,7 +636,9 @@
     this._codepage = 0;
     this._tagStack = [];
 
-    let [major, minor] = version.split('.').map(function(x) parseInt(x));
+    let [major, minor] = version.split('.').map(function(x) {
+      return parseInt(x);
+    });
     let v = ((major - 1) << 4) + minor;
 
     let charsetNum = charset;
@@ -680,11 +684,17 @@
   Writer.Extension = function(subtype, index, data) {
     const validTypes = {
       'string':  { value:     Tokens.EXT_I_0,
-                   validator: function(data) typeof data === 'string' },
+                   validator: function(data) {
+                     return typeof data === 'string';
+                   } },
       'integer': { value:     Tokens.EXT_T_0,
-                   validator: function(data) typeof data === 'number' },
+                   validator: function(data) {
+                     return typeof data === 'number';
+                   } },
       'byte':    { value:     Tokens.EXT_0,
-                   validator: function(data) data === null || data === undefined },
+                   validator: function(data) {
+                     return data === null || data === undefined;
+                   } },
     };
 
     let info = validTypes[subtype];
