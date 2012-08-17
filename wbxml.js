@@ -144,9 +144,9 @@
     this.type = type;
     this._attrs = {};
 
-    if (typeof tag == 'string') {
+    if (typeof tag === 'string') {
       let pieces = tag.split(':');
-      if (pieces.length == 1)
+      if (pieces.length === 1)
         this.localTagName = pieces[0];
       else
         [this.namespaceName, this.localTagName] = pieces;
@@ -182,10 +182,10 @@
     },
 
     getAttribute: function(attr) {
-      if (typeof attr == 'number')
+      if (typeof attr === 'number')
         attr = this.ownerDocument._codepages.__attrdata__[attr].name;
-      else if (!(attr in this._attrs) && this.namespace != null &&
-               attr.indexOf(':') == -1)
+      else if (!(attr in this._attrs) && this.namespace !== null &&
+               attr.indexOf(':') === -1)
         attr = this.namespaceName + ':' + attr;
       return this._getAttribute(this._attrs[attr]);
     },
@@ -202,7 +202,7 @@
           }
           array.push(hunk);
         }
-        else if (typeof hunk == 'number') {
+        else if (typeof hunk === 'number') {
           strValue += this.ownerDocument._codepages.__attrdata__[hunk].data ||
                       '';
         }
@@ -213,11 +213,11 @@
       if (strValue)
         array.push(strValue);
 
-      return array.length == 1 ? array[0] : array;
+      return array.length === 1 ? array[0] : array;
     },
 
     _addAttribute: function(attr) {
-      if (typeof attr == 'string') {
+      if (typeof attr === 'string') {
         if (attr in this._attrs)
           throw new ParseError('attribute '+attr+' is repeated');
         return this._attrs[attr] = [];
@@ -274,7 +274,7 @@
     get type() { return 'PI'; },
 
     get target() {
-      if (typeof this.targetID == 'string')
+      if (typeof this.targetID === 'string')
         return this.targetID;
       else
         return this.ownerDocument._codepages.__attrdata__[this.targetID].name;
@@ -282,7 +282,7 @@
 
     _setTarget: function(target) {
       this.targetID = target;
-      if (typeof target == 'string')
+      if (typeof target === 'string')
         return this._data = [];
       else
         return this._data = [target];
@@ -396,13 +396,13 @@
       let foundRoot = false;
 
       let appendString = (function(s) {
-        if (state == States.BODY) {
+        if (state === States.BODY) {
           if (!currentNode)
             currentNode = new Text(this, s);
           else
             currentNode.textContent += s;
         }
-        else { // if (state == States.ATTRIBUTES || state == States.ATTRIBUTE_PI)
+        else { // if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI)
           currentAttr.push(s);
         }
         // We can assume that we're in a valid state, so don't bother checking
@@ -414,20 +414,20 @@
       // bit, since we can eat as many tokens as we need to for each logical
       // chunk of the document.
       for (let tok in this._iter) {
-        if (tok == Tokens.SWITCH_PAGE) {
+        if (tok === Tokens.SWITCH_PAGE) {
           codepage = this._get_uint8();
           if (!(codepage in this._codepages.__nsnames__))
             throw new ParseError('unknown codepage '+codepage)
         }
-        else if (tok == Tokens.END) {
-          if (state == States.BODY && depth-- > 0) {
+        else if (tok === Tokens.END) {
+          if (state === States.BODY && depth-- > 0) {
             if (currentNode) {
               yield currentNode;
               currentNode = null;
             }
             yield new EndTag(this);
           }
-          else if (state == States.ATTRIBUTES || state == States.ATTRIBUTE_PI) {
+          else if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI) {
             state = States.BODY;
 
             yield currentNode;
@@ -438,14 +438,14 @@
             throw new ParseError('unexpected END token');
           }
         }
-        else if (tok == Tokens.ENTITY) {
-          if (state == States.BODY && depth == 0)
+        else if (tok === Tokens.ENTITY) {
+          if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected ENTITY token');
           let e = this._get_mb_uint32();
           appendString('&#'+e+';');
         }
-        else if (tok == Tokens.STR_I) {
-          if (state == States.BODY && depth == 0)
+        else if (tok === Tokens.STR_I) {
+          if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected STR_I token');
           let s = '';
           let c;
@@ -454,8 +454,8 @@
           }
           appendString(s);
         }
-        else if (tok == Tokens.PI) {
-          if (state != States.BODY)
+        else if (tok === Tokens.PI) {
+          if (state !== States.BODY)
             throw new ParseError('unexpected PI token');
           state = States.ATTRIBUTE_PI;
 
@@ -463,14 +463,14 @@
             yield currentNode;
           currentNode = new ProcessingInstruction(this);
         }
-        else if (tok == Tokens.STR_T) {
-          if (state == States.BODY && depth == 0)
+        else if (tok === Tokens.STR_T) {
+          if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected STR_T token');
           let r = this._get_mb_uint32();
           appendString(this.strings.get(r));
         }
-        else if (tok == Tokens.OPAQUE) {
-          if (state != States.BODY)
+        else if (tok === Tokens.OPAQUE) {
+          if (state !== States.BODY)
             throw new ParseError('unexpected OPAQUE token');
           let len = this._get_mb_uint32();
           let s = ''; // XXX: use a typed array here?
@@ -489,7 +489,7 @@
           let subtype;
           let value;
 
-          if (hi == Tokens.EXT_I_0) {
+          if (hi === Tokens.EXT_I_0) {
             subtype = 'string';
             value = '';
             let c;
@@ -497,36 +497,36 @@
               value += String.fromCharCode(c);
             }
           }
-          else if (hi == Tokens.EXT_T_0) {
+          else if (hi === Tokens.EXT_T_0) {
             subtype = 'integer';
             value = this._get_mb_uint32();
           }
-          else { // if (hi == Tokens.EXT_0)
+          else { // if (hi === Tokens.EXT_0)
             subtype = 'byte';
             value = null;
           }
 
           let ext = new Extension(this, subtype, lo, value);
-          if (state == States.BODY) {
+          if (state === States.BODY) {
             if (currentNode) {
               yield currentNode;
               currentNode = null;
             }
             yield ext;
           }
-          else { // if (state == States.ATTRIBUTES || state == States.ATTRIBUTE_PI)
+          else { // if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI)
             currentAttr.push(ext);
           }
         }
-        else if (state == States.BODY) {
-          if (depth == 0) {
+        else if (state === States.BODY) {
+          if (depth === 0) {
             if (foundRoot)
               throw new ParseError('multiple root nodes found');
             foundRoot = true;
           }
 
           let tag = (codepage << 8) + (tok & 0x3f);
-          if ((tok & 0x3f) == Tokens.LITERAL) {
+          if ((tok & 0x3f) === Tokens.LITERAL) {
             let r = this._get_mb_uint32();
             tag = this.strings.get(r);
           }
@@ -547,14 +547,14 @@
             currentNode = null;
           }
         }
-        else { // if (state == States.ATTRIBUTES || state == States.ATTRIBUTE_PI)
+        else { // if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI)
           let attr = (codepage << 8) + tok;
           if (!(tok & 0x80)) {
-            if (tok == Tokens.LITERAL) {
+            if (tok === Tokens.LITERAL) {
               let r = this._get_mb_uint32();
               attr = this.strings.get(r);
             }
-            if (state == States.ATTRIBUTE_PI) {
+            if (state === States.ATTRIBUTE_PI) {
               if (currentAttr)
                 throw new ParseError('unexpected attribute in PI');
               currentAttr = currentNode._setTarget(attr);
@@ -573,7 +573,7 @@
     dump: function(indentation, header) {
       let result = '';
 
-      if (indentation == undefined)
+      if (indentation === undefined)
         indentation = 2;
       let indent = function(level) new Array(level*indentation + 1).join(' ');
       let tagstack = [];
@@ -588,34 +588,34 @@
 
       let newline = false;
       for (let node in this.document) {
-        if (node.type == 'TAG' || node.type == 'STAG') {
+        if (node.type === 'TAG' || node.type === 'STAG') {
           result += indent(tagstack.length) + '<' + node.tagName;
 
           for (let [k,v] in node.attributes) {
             result += ' ' + k + '="' + v + '"';
           }
 
-          if (node.type == 'STAG') {
+          if (node.type === 'STAG') {
             tagstack.push(node.tagName);
             result += '>\n';
           }
           else
             result += '/>\n';
         }
-        else if (node.type == 'ETAG') {
+        else if (node.type === 'ETAG') {
           let tag = tagstack.pop();
           result += indent(tagstack.length) + '</' + tag + '>\n';
         }
-        else if (node.type == 'TEXT') {
+        else if (node.type === 'TEXT') {
           result += indent(tagstack.length) + node.textContent + '\n';
         }
-        else if (node.type == 'PI') {
+        else if (node.type === 'PI') {
           result += indent(tagstack.length) + '<?' + node.target;
           if (node.data)
             result += ' ' + node.data;
           result += '?>\n';
         }
-        else if (node.type == 'OPAQUE') {
+        else if (node.type === 'OPAQUE') {
           result += indent(tagstack.length) + '<![CDATA[' + node.data + ']]>\n';
         }
         else {
@@ -638,7 +638,7 @@
     let v = ((major - 1) << 4) + minor;
 
     let charsetNum = charset;
-    if (typeof charset == 'string') {
+    if (typeof charset === 'string') {
       charsetNum = str2mib[charset];
       if (charsetNum === undefined)
         throw new Error('unknown charset '+charset);
@@ -680,11 +680,11 @@
   Writer.Extension = function(subtype, index, data) {
     const validTypes = {
       'string':  { value:     Tokens.EXT_I_0,
-                   validator: function(data) typeof data == 'string' },
+                   validator: function(data) typeof data === 'string' },
       'integer': { value:     Tokens.EXT_T_0,
-                   validator: function(data) typeof data == 'number' },
+                   validator: function(data) typeof data === 'number' },
       'byte':    { value:     Tokens.EXT_0,
-                   validator: function(data) data == null || data == undefined },
+                   validator: function(data) data === null || data === undefined },
     };
 
     let info = validTypes[subtype];
@@ -709,7 +709,7 @@
   Writer.prototype = {
     _write: function(tok) {
       // Expand the buffer by a factor of two if we ran out of space.
-      if (this._pos == this._buffer.length - 1) {
+      if (this._pos === this._buffer.length - 1) {
         this._rawbuf = new ArrayBuffer(this._rawbuf.byteLength * 2);
         let buffer = new Uint8Array(this._rawbuf);
 
@@ -740,7 +740,7 @@
     },
 
     _setCodepage: function(codepage) {
-      if (this._codepage != codepage) {
+      if (this._codepage !== codepage) {
         this._write(Tokens.SWITCH_PAGE);
         this._write(codepage);
         this._codepage = codepage;
@@ -805,11 +805,11 @@
       }
       else if (value instanceof Writer.Extension) {
         this._write(value.subtype + value.index);
-        if (value.subtype == Tokens.EXT_I_0) {
+        if (value.subtype === Tokens.EXT_I_0) {
           this._write_str(value.data);
           this._write(0x00);
         }
-        else if (value.subtype == Tokens.EXT_T_0) {
+        else if (value.subtype === Tokens.EXT_T_0) {
           this._write_mb_uint32(value.data);
         }
       }
@@ -822,7 +822,7 @@
         this._setCodepage(value.name >> 8);
         this._write(value.name & 0xff);
       }
-      else if (value != null) {
+      else if (value !== null && value !== undefined) {
         this._write(Tokens.STR_I);
         this._write_str(value.toString());
         this._write(0x00);
@@ -881,7 +881,7 @@
     opaque: function(data) {
       this._write(Tokens.OPAQUE);
       this._write_mb_uint32(data.length);
-      if (typeof data == 'string') {
+      if (typeof data === 'string') {
         this._write_str(data);
       }
       else {
@@ -905,14 +905,14 @@
     },
 
     _pathMatches: function(a, b) {
-      return a.length == b.length && a.every(function(val, i) {
-        if (b[i] == '*')
+      return a.length === b.length && a.every(function(val, i) {
+        if (b[i] === '*')
           return true;
         else if (Array.isArray(b[i])) {
-          return b[i].indexOf(val) != -1;
+          return b[i].indexOf(val) !== -1;
         }
         else
-          return val == b[i];
+          return val === b[i];
       });
     },
 
@@ -922,7 +922,7 @@
       let recording = 0;
 
       for (let node in reader.document) {
-        if (node.type == 'TAG') {
+        if (node.type === 'TAG') {
           fullPath.push(node.tag);
           for (let [,listener] in Iterator(this.listeners)) {
             if (this._pathMatches(fullPath, listener.path)) {
@@ -933,7 +933,7 @@
 
           fullPath.pop();
         }
-        else if (node.type == 'STAG') {
+        else if (node.type === 'STAG') {
           fullPath.push(node.tag);
 
           for (let [,listener] in Iterator(this.listeners)) {
@@ -942,7 +942,7 @@
             }
           }
         }
-        else if (node.type == 'ETAG') {
+        else if (node.type === 'ETAG') {
           for (let [,listener] in Iterator(this.listeners)) {
             if (this._pathMatches(fullPath, listener.path)) {
               recording--;
@@ -954,14 +954,14 @@
         }
 
         if (recording) {
-          if (node.type == 'STAG') {
+          if (node.type === 'STAG') {
             node.type = 'TAG';
             node.children = [];
             if (recPath.length)
               recPath[recPath.length-1].children.push(node);
             recPath.push(node);
           }
-          else if (node.type == 'ETAG') {
+          else if (node.type === 'ETAG') {
             recPath.pop();
           }
           else {

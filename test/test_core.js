@@ -43,16 +43,16 @@ function assert_throws(f, type) {
 
 function assert_attr_equals(a, b, reason) {
   let attr_eq = function(a, b) {
-    if (typeof a == 'object' && typeof b == 'object')
-      return (a.type == b.type && a.subtype == b.subtype &&
-              a.index == b.index && a.value == b.value);
+    if (typeof a === 'object' && typeof b === 'object')
+      return (a.type === b.type && a.subtype === b.subtype &&
+              a.index === b.index && a.value === b.value);
     else
       return a == b;
   }
 
   let result;
   if (Array.isArray(a) && Array.isArray(b)) {
-    result = (a.length == b.length);
+    result = (a.length === b.length);
     for (let i = 0; i < a.length; i++)
       result = result && attr_eq(a[i], b[i]);
   }
@@ -77,9 +77,9 @@ function zip() {
         ends++;
       }
     }
-    if (ends == arguments.length)
+    if (ends === arguments.length)
       throw StopIteration;
-    else if (ends != 0)
+    else if (ends !== 0)
       throw new Error('Zipped iterators have differing lengths!');
 
     yield step;
@@ -106,7 +106,7 @@ function verify_node(actual, expected) {
       assert_equals(attr.localName, localName);
 
       let expectedAttr = expected.attributes[attr.name];
-      if (expectedAttr == undefined && namespace == actual.namespaceName)
+      if (expectedAttr === undefined && namespace === actual.namespaceName)
         expectedAttr = expected.attributes[attr.localName];
 
       assert_attr_equals(attr.value, expectedAttr);

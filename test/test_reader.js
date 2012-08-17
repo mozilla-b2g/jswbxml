@@ -18,9 +18,9 @@
 function binify(src) {
   let dest = new Uint8Array(src.length);
   for (let i = 0; i < src.length; i++) {
-    if (typeof src[i] == 'number')
+    if (typeof src[i] === 'number')
       dest[i] = src[i];
-    else if (typeof src[i] == 'string')
+    else if (typeof src[i] === 'string')
       dest[i] = src[i].charCodeAt(0);
     else
       throw 'bad value';
