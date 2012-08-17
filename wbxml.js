@@ -154,8 +154,8 @@
     else {
       this.tag = tag;
       Object.defineProperties(this, {
-        'namespace':     { get: function() this.tag >> 8 },
-        'localTag':      { get: function() this.tag & 0xff },
+        'namespace':     { get: function() { return this.tag >> 8; } },
+        'localTag':      { get: function() { return this.tag & 0xff; } },
         'namespaceName': { get: function() {
           return this.ownerDocument._codepages.__nsnames__[this.namespace];
         } },
@@ -243,7 +243,7 @@
   }
 
   EndTag.prototype = {
-    get type() 'ETAG',
+    get type() { return 'ETAG'; },
   };
 
   function Text(ownerDocument, textContent) {
@@ -252,7 +252,7 @@
   }
 
   Text.prototype = {
-    get type() 'TEXT',
+    get type() { return 'TEXT'; },
   };
 
   function Extension(ownerDocument, subtype, index, value) {
@@ -263,7 +263,7 @@
   }
 
   Extension.prototype = {
-    get type() 'EXT',
+    get type() { return 'EXT'; },
   };
 
   function ProcessingInstruction(ownerDocument) {
@@ -271,7 +271,7 @@
   }
 
   ProcessingInstruction.prototype = {
-    get type() 'PI',
+    get type() { return 'PI'; },
 
     get target() {
       if (typeof this.targetID == 'string')
@@ -291,7 +291,7 @@
     // XXX: this seems impolite...
     _getAttribute: Element.prototype._getAttribute,
 
-    get data() this._getAttribute(this._data),
+    get data() { return this._getAttribute(this._data); },
   };
 
   function Opaque(ownerDocument, data) {
@@ -300,7 +300,7 @@
   }
 
   Opaque.prototype = {
-    get type() 'OPAQUE',
+    get type() { return 'OPAQUE'; },
   };
 
   function Reader(xml, codepages) {
@@ -700,11 +700,11 @@
     this.data = data;
   };
 
-  Writer.a = function(name, value) new Writer.Attribute(name, value);
-  Writer.str_t = function(index) new Writer.StringTableRef(index);
-  Writer.ent = function(code) new Writer.Entity(code);
-  Writer.ext = function(subtype, index, data) new Writer.Extension(
-    subtype, index, data);
+  Writer.a = function(name, val) { return new Writer.Attribute(name, val); };
+  Writer.str_t = function(index) { return new Writer.StringTableRef(index); };
+  Writer.ent = function(code) { return new Writer.Entity(code) };
+  Writer.ext = function(subtype, index, data) { return new Writer.Extension(
+    subtype, index, data); };
 
   Writer.prototype = {
     _write: function(tok) {
@@ -891,8 +891,8 @@
       return this;
     },
 
-    get buffer() this._rawbuf.slice(0, this._pos),
-    get bytes() new Uint8Array(this._rawbuf, 0, this._pos),
+    get buffer() { return this._rawbuf.slice(0, this._pos); },
+    get bytes() { return new Uint8Array(this._rawbuf, 0, this._pos); },
   };
 
   function EventParser(reader) {
