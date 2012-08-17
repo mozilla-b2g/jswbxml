@@ -652,7 +652,7 @@
     this._write(pid);
     this._write(charsetNum);
     if (strings) {
-      let len = strings.reduce(function(x, y) x + y.length + 1, 0);
+      let len = strings.reduce(function(x, y) { return x + y.length + 1; }, 0);
       this._write_mb_uint32(len);
       for (let [,s] in Iterator(strings)) {
         for (let i = 0; i < s.length; i++)
