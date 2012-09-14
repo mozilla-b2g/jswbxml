@@ -303,35 +303,31 @@
     get type() { return 'OPAQUE'; },
   };
 
-  function Reader(xml, codepages) {
-    this._xml = xml instanceof Writer ? xml.bytes : xml;
+  function Reader(data, codepages) {
+    this._data = data instanceof Writer ? data.bytes : data;
     this._codepages = codepages;
     this.rewind();
   }
 
   Reader.prototype = {
     _get_uint8: function() {
-      return this._iter.next();
+      if (this._index === this._data.length)
+        throw StopIteration;
+      return this._data[this._index++];
     },
 
     _get_mb_uint32: function() {
       let b;
       let result = 0;
       do {
-        b = this._iter.next();
+        b = this._get_uint8();
         result = result*128 + (b & 0x7f);
       } while(b & 0x80);
       return result;
     },
 
     rewind: function() {
-      let self = this;
-      // For some reason, the normal generator syntax doesn't work when |xml| is
-      // a member variable, so do it like this.
-      this._iter = (function() {
-        for (let i = 0; i < self._xml.length; i++)
-          yield self._xml[i];
-      })();
+      this._index = 0;
 
       // XXX: only do this once during the constructor?
       let v = this._get_uint8();
@@ -409,11 +405,9 @@
         // here.
       }).bind(this);
 
-      // Beware! We're going to grab multiple tokens from our iterator inside
-      // this for loop. This simplifies the actual structure of the loop quite a
-      // bit, since we can eat as many tokens as we need to for each logical
-      // chunk of the document.
-      for (let tok in this._iter) {
+      try { while (true) {
+        let tok = this._get_uint8();
+
         if (tok === Tokens.SWITCH_PAGE) {
           codepage = this._get_uint8();
           if (!(codepage in this._codepages.__nsnames__))
@@ -567,7 +561,7 @@
             currentAttr.push(attr);
           }
         }
-      }
+      } } catch (e if e instanceof StopIteration) {}
     },
 
     dump: function(indentation, header) {
