@@ -587,8 +587,8 @@
         if (node.type === 'TAG' || node.type === 'STAG') {
           result += indent(tagstack.length) + '<' + node.tagName;
 
-          for (let [k,v] in node.attributes) {
-            result += ' ' + k + '="' + v + '"';
+          for (let attr in node.attributes) {
+            result += ' ' + attr.name + '="' + attr.value + '"';
           }
 
           if (node.type === 'STAG') {
