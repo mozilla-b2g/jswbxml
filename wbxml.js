@@ -27,15 +27,6 @@
     'ParseError', 'CompileCodepages', 'Element', 'EndTag', 'Text', 'Extension',
     'ProcessingInstruction', 'Opaque', 'Reader', 'Writer', 'EventParser' ];
 
-  // XXX: this is just a temporary function until we start using proper text
-  // encoding.
-  function stringify(array) {
-    let string = '';
-    for (let c of array)
-      string += String.fromCharCode(c);
-    return string;
-  }
-
   const Tokens = {
     SWITCH_PAGE: 0x00,
     END:         0x01,
@@ -66,15 +57,17 @@
   ParseError.prototype = new Error();
   ParseError.prototype.constructor = ParseError;
 
-  function StringTable(data) {
-    this.strings = stringify(data).split('\0');
+  function StringTable(data, decoder) {
+    this.strings = [];
     this.offsets = {};
-    let total = 0;
-    for (let i = 0; i < this.strings.length; i++) {
-      this.offsets[total] = i;
-      // Add 1 to the current string's length here because we stripped a null-
-      // terminator earlier.
-      total += this.strings[i].length + 1;
+
+    let start = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] === 0) {
+        this.offsets[start] = this.strings.length;
+        this.strings.push(decoder.decode( data.subarray(start, i) ));
+        start = i + 1;
+      }
     }
   }
 
@@ -354,9 +347,10 @@
       this.version = ((v & 0xf0) + 1).toString() + '.' + (v & 0x0f).toString();
       this.pid = this._get_mb_uint32();
       this.charset = mib2str[this._get_mb_uint32()] || 'unknown';
+      this._decoder = TextDecoder(this.charset);
 
       let tbl_len = this._get_mb_uint32();
-      this.strings = new StringTable(this._get_slice(tbl_len));
+      this.strings = new StringTable(this._get_slice(tbl_len), this._decoder);
 
       this.document = this._getDocument();
     },
@@ -458,7 +452,7 @@
         else if (tok === Tokens.STR_I) {
           if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected STR_I token');
-          appendString(stringify( this._get_c_string() ));
+          appendString(this._decoder.decode(this._get_c_string()));
         }
         else if (tok === Tokens.PI) {
           if (state !== States.BODY)
@@ -479,14 +473,13 @@
           if (state !== States.BODY)
             throw new ParseError('unexpected OPAQUE token');
           let len = this._get_mb_uint32();
-          // XXX: use a typed array here?
-          let s = stringify(this._get_slice(len));
+          let data = this._get_slice(len);
 
           if (currentNode) {
             yield currentNode;
             currentNode = null;
           }
-          yield new Opaque(this, s);
+          yield new Opaque(this, data);
         }
         else if (((tok & 0x40) || (tok & 0x80)) && (tok & 0x3f) < 3) {
           let hi = tok & 0xc0;
@@ -496,7 +489,7 @@
 
           if (hi === Tokens.EXT_I_0) {
             subtype = 'string';
-            value = stringify(this._get_c_string());
+            value = this._decoder.decode(this._get_c_string());
           }
           else if (hi === Tokens.EXT_T_0) {
             subtype = 'integer';

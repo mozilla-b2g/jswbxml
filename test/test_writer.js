@@ -301,8 +301,8 @@ function test_writer_opaque() {
 
   let expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'OPAQUE', data: 'string' },
-      { type: 'OPAQUE', data: 'string' },
+      { type: 'OPAQUE', data: binify('string') },
+      { type: 'OPAQUE', data: binify('string') },
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(w, codepages);

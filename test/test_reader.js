@@ -400,11 +400,66 @@ function test_reader_opaque() {
   ]);
   let expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
-      { type: 'OPAQUE', data: 'string' },
+      { type: 'OPAQUE', data: binify('string') },
     { type: 'ETAG' },
   ];
   let r = new WBXML.Reader(data, codepages);
   verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
+}
+
+function test_reader_utf8() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+      Attrs: {
+        TYPE:  { value: 0x05 },
+        CLASS: { value: 0x06, data: '\u2623' },
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+
+  // <ROOT>
+  //   <CARD TYPE="(angry guy)" CLASS="(biohazard)(flipped table)">
+  //     (unicode snowman)
+  //   </CARD>
+  //   <CARD TYPE="(caduceus)" CLASS="(biohazard)(radiation)">
+  //     (angry guy) (flipped table)
+  //   </CARD>
+  // </ROOT>
+  let data = binify([
+    0x01, 0x01, 0x6A, 0x1D,  '(', 0xE2, 0x95, 0xAF, 0xC2, 0xB0, 0xE2, 0x96,
+    0xA1, 0xC2, 0xB0,  ')', 0xE2, 0x95, 0xAF, 0xEF, 0xB8, 0xB5, 0x00, 0xE2,
+    0x94, 0xBB, 0xE2, 0x94, 0x81, 0xE2, 0x94, 0xBB, 0x00, 0x45, 0xC6, 0x05,
+    0x83, 0x00, 0x06, 0x83, 0x13, 0x01, 0x03, 0xE2, 0x98, 0x83, 0x00, 0x01,
+    0xC6, 0x05, 0x03, 0xE2, 0x98, 0xA4, 0x00, 0x06, 0x03, 0xE2, 0x98, 0xA2,
+    0x00, 0x01, 0x83, 0x00, 0x03,  ' ', 0x00, 0x83, 0x13, 0x01, 0x84, 0x00,
+    0x04, 0x13, 0x03,  'x', 0x00, 0x01, 0x01
+  ]);
+  let expectedNodes = [
+    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
+        attributes: { TYPE: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
+                      CLASS: '\u2623\u253b\u2501\u253b' }
+      },
+        { type: 'TEXT', textContent: '\u2603' },
+      { type: 'ETAG' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
+        attributes: { TYPE: '\u2624', CLASS: '\u2623\u2622' } },
+        { type: 'TEXT', textContent: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35 ' +
+                                     '\u253b\u2501\u253b' },
+      { type: 'ETAG' },
+      { type: 'TAG', tag: undefined,
+        localTagName: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
+        attributes: { '\u253b\u2501\u253b': 'x' } },
+    { type: 'ETAG' },
+  ];
+  let r = new WBXML.Reader(data, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
 }
 
 function test_reader_stray_text() {

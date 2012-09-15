@@ -26,7 +26,14 @@ function assert(expr, reason) {
 }
 
 function assert_equals(a, b, reason) {
-  assert(a == b, reason ? reason : a + ' should be equal to ' + b);
+  if (a instanceof Uint8Array && b instanceof Uint8Array) {
+    assert_equals(a.length, b.length);
+    for (let i = 0; i < a.length; i++)
+      assert_equals(a[i], b[i]);
+  }
+  else {
+    assert(a == b, reason ? reason : a + ' should be equal to ' + b);
+  }
 }
 
 function assert_throws(f, type) {
