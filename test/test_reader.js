@@ -430,6 +430,7 @@ function test_reader_utf8() {
   //   <CARD TYPE="(caduceus)" CLASS="(biohazard)(radiation)">
   //     (angry guy) (flipped table)
   //   </CARD>
+  //   <(angry guy) (flipped table)="x"/>
   // </ROOT>
   let data = binify([
     0x01, 0x01, 0x6A, 0x1D,  '(', 0xE2, 0x95, 0xAF, 0xC2, 0xB0, 0xE2, 0x96,

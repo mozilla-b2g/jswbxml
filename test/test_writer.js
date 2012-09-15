@@ -309,6 +309,56 @@ function test_writer_opaque() {
   verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
 }
 
+function test_writer_utf8() {
+  let codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+      Attrs: {
+        TYPE:  { value: 0x05 },
+        CLASS: { value: 0x06, data: '\u2623' },
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  let cp = codepages.Default.Tags;
+  let cpa = codepages.Default.Attrs;
+
+  let a = WBXML.Writer.a;
+  let str_t = WBXML.Writer.str_t;
+
+  let w = new WBXML.Writer('1.1', 1, 'UTF-8',
+                           ['(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
+                            '\u253b\u2501\u253b']);
+  w.stag(cp.ROOT)
+     .tag(cp.CARD, a(cpa.TYPE, str_t(0)), a(cpa.CLASS, str_t(19)), '\u2603')
+     .stag(cp.CARD, a(cpa.TYPE, '\u2624'), a(cpa.CLASS, '\u2622'))
+       .text([str_t(0), ' ', str_t(19)])
+     .etag()
+   .etag();
+
+  let expectedNodes = [
+    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
+        attributes: { TYPE: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
+                      CLASS: '\u2623\u253b\u2501\u253b' }
+      },
+        { type: 'TEXT', textContent: '\u2603'},
+      { type: 'ETAG' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
+        attributes: { TYPE: '\u2624', CLASS: '\u2623\u2622' } },
+        { type: 'TEXT', textContent: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35 ' +
+                                     '\u253b\u2501\u253b'},
+      { type: 'ETAG' },
+    { type: 'ETAG' },
+  ];
+
+  let r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+}
+
 function test_writer_unexpected_etag() {
   let codepages = {
     Default: {

@@ -641,16 +641,17 @@
       if (charsetNum === undefined)
         throw new Error('unknown charset '+charset);
     }
+    let encoder = this._encoder = TextEncoder(charset);
 
     this._write(v);
     this._write(pid);
     this._write(charsetNum);
     if (strings) {
-      let len = strings.reduce(function(x, y) { return x + y.length + 1; }, 0);
+      let bytes = strings.map(function(s) { return encoder.encode(s); });
+      let len = bytes.reduce(function(x, y) { return x + y.length + 1; }, 0);
       this._write_mb_uint32(len);
-      for (let [,s] in Iterator(strings)) {
-        for (let i = 0; i < s.length; i++)
-          this._write(s.charCodeAt(i));
+      for (let [,b] in Iterator(bytes)) {
+        this._write_bytes(b);
         this._write(0x00);
       }
     }
@@ -738,9 +739,13 @@
         this._write(bytes[i]);
     },
 
+    _write_bytes: function(bytes) {
+      for (let i = 0; i < bytes.length; i++)
+        this._write(bytes[i]);
+    },
+
     _write_str: function(str) {
-      for (let i = 0; i < str.length; i++)
-        this._write(str.charCodeAt(i));
+      this._write_bytes(this._encoder.encode(str));
     },
 
     _setCodepage: function(codepage) {
