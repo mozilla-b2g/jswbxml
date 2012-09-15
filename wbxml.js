@@ -561,7 +561,10 @@
             currentAttr.push(attr);
           }
         }
-      } } catch (e if e instanceof StopIteration) {}
+      } } catch (e) {
+        if (!(e instanceof StopIteration))
+          throw e;
+      }
     },
 
     dump: function(indentation, header) {
