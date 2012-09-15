@@ -77,7 +77,7 @@
         return this.strings[this.offsets[offset]];
       else {
         if (offset < 0)
-          throw new WBXMLParseError('offset must be >= 0');
+          throw new ParseError('offset must be >= 0');
 
         let curr = 0;
         for (let i = 0; i < this.strings.length; i++) {
@@ -88,7 +88,7 @@
           curr += this.strings[i].length + 1;
         }
       }
-      throw new WBXMLParseError('invalid offset');
+      throw new ParseError('invalid offset');
     },
   };
 
