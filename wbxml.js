@@ -667,7 +667,7 @@
   Writer.Attribute = function(name, value) {
     this.isValue = typeof name === 'number' && (name & 0x80);
     if (this.isValue && value !== undefined)
-      throw new Error('Can\'t specify a value for attribute value constants');
+      throw new Error("Can't specify a value for attribute value constants");
     this.name = name;
     this.value = value;
   };
@@ -790,7 +790,7 @@
       if (!(attr instanceof Writer.Attribute))
         throw new Error('Expected an Attribute object');
       if (attr.isValue)
-        throw new Error('Can\'t use attribute value constants here');
+        throw new Error("Can't use attribute value constants here");
 
       if (attr.name instanceof Writer.StringTableRef) {
         this._write(Tokens.LITERAL);
@@ -830,8 +830,8 @@
         if (!value.isValue)
           throw new Error('Unexpected Attribute object');
         if (!inAttr)
-          throw new Error('Can\'t use attribute value constants outside of ' +
-                          'attributes');
+          throw new Error("Can't use attribute value constants outside of " +
+                          "attributes");
         this._setCodepage(value.name >> 8);
         this._write(value.name & 0xff);
       }
