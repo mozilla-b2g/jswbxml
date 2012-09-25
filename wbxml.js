@@ -23,9 +23,7 @@
 }(this, function() {
   'use strict';
 
-  const __exports__ = [
-    'ParseError', 'CompileCodepages', 'Element', 'EndTag', 'Text', 'Extension',
-    'ProcessingInstruction', 'Opaque', 'Reader', 'Writer', 'EventParser' ];
+  let exports = {};
 
   const Tokens = {
     SWITCH_PAGE: 0x00,
@@ -54,6 +52,7 @@
       this.name = 'WBXML.ParseError';
       this.message = message || '';
   }
+  exports.ParseError = ParseError;
   ParseError.prototype = new Error();
   ParseError.prototype.constructor = ParseError;
 
@@ -119,6 +118,7 @@
       }
     }
   }
+  exports.CompileCodepages = CompileCodepages;
 
   const mib2str = {
       3: 'US-ASCII',
@@ -167,7 +167,7 @@
       });
     }
   }
-
+  exports.Element = Element;
   Element.prototype = {
     get tagName() {
       let ns = this.namespaceName;
@@ -243,7 +243,7 @@
   function EndTag(ownerDocument) {
     this.ownerDocument = ownerDocument;
   }
-
+  exports.EndTag = EndTag;
   EndTag.prototype = {
     get type() { return 'ETAG'; },
   };
@@ -252,7 +252,7 @@
     this.ownerDocument = ownerDocument;
     this.textContent = textContent;
   }
-
+  exports.Text = Text;
   Text.prototype = {
     get type() { return 'TEXT'; },
   };
@@ -263,7 +263,7 @@
     this.index = index;
     this.value = value;
   }
-
+  exports.Extension = Extension;
   Extension.prototype = {
     get type() { return 'EXT'; },
   };
@@ -271,7 +271,7 @@
   function ProcessingInstruction(ownerDocument) {
     this.ownerDocument = ownerDocument;
   }
-
+  exports.ProcessingInstruction = ProcessingInstruction;
   ProcessingInstruction.prototype = {
     get type() { return 'PI'; },
 
@@ -300,7 +300,7 @@
     this.ownerDocument = ownerDocument;
     this.data = data;
   }
-
+  exports.Opaque = Opaque;
   Opaque.prototype = {
     get type() { return 'OPAQUE'; },
   };
@@ -310,7 +310,7 @@
     this._codepages = codepages;
     this.rewind();
   }
-
+  exports.Reader = Reader;
   Reader.prototype = {
     _get_uint8: function() {
       if (this._index === this._data.length)
@@ -662,6 +662,7 @@
       this._write(0x00);
     }
   }
+  exports.Writer = Writer;
 
   Writer.Attribute = function(name, value) {
     this.isValue = typeof name === 'number' && (name & 0x80);
@@ -910,7 +911,7 @@
   function EventParser(reader) {
     this.listeners = [];
   }
-
+  exports.EventParser = EventParser;
   EventParser.prototype = {
     addEventListener: function(path, callback) {
       this.listeners.push({path: path, callback: callback});
@@ -985,8 +986,5 @@
     },
   };
 
-  let exported = {};
-  for (let [,exp] in Iterator(__exports__))
-    exported[exp] = eval(exp);
-  return exported;
+  return exports;
 }));
