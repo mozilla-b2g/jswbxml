@@ -48,13 +48,49 @@
     LITERAL_AC:  0xC4,
   };
 
-  function ParseError(message) {
-      this.name = 'WBXML.ParseError';
-      this.message = message || '';
+  /**
+   * Create a constructor for a custom error type that works like a built-in
+   * Error.
+   *
+   * @param name the string name of the error
+   * @param parent (optional) a parent class for the error, defaults to Error
+   * @param extraArgs an array of extra arguments that can be passed to the
+   *        constructor of this error type
+   * @return the constructor for this error
+   */
+  function makeError(name, parent, extraArgs) {
+    function CustomError() {
+      // Try to let users call this as CustomError(...) without the "new". This
+      // is imperfect, and if you call this function directly and give it a
+      // |this| that's a CustomError, things will break. Don't do it!
+      var self = this instanceof CustomError ?
+                 this : Object.create(CustomError.prototype);
+      var tmp = Error();
+      var offset = 1;
+
+      self.stack = tmp.stack.substring(tmp.stack.indexOf('\n') + 1);
+      self.message = arguments[0] || tmp.message;
+      if (extraArgs) {
+        offset += extraArgs.length;
+        for (var i = 0; i < extraArgs.length; i++)
+          self[extraArgs[i]] = arguments[i+1];
+      }
+
+      var m = /@(.+):(.+)/.exec(self.stack);
+      self.fileName = arguments[offset] || (m && m[1]) || "";
+      self.lineNumber = arguments[offset + 1] || (m && m[2]) || 0;
+
+      return self;
+    }
+    CustomError.prototype = Object.create((parent || Error).prototype);
+    CustomError.prototype.name = name;
+    CustomError.prototype.constructor = CustomError;
+
+    return CustomError;
   }
+
+  var ParseError = makeError('WBXML.ParseError');
   exports.ParseError = ParseError;
-  ParseError.prototype = new Error();
-  ParseError.prototype.constructor = ParseError;
 
   function StringTable(data, decoder) {
     this.strings = [];
@@ -908,8 +944,9 @@
     get bytes() { return new Uint8Array(this._rawbuf, 0, this._pos); },
   };
 
-  function EventParser(reader) {
+  function EventParser() {
     this.listeners = [];
+    this.onerror = function(e) { throw e; };
   }
   exports.EventParser = EventParser;
   EventParser.prototype = {
@@ -944,7 +981,8 @@
                 listener.callback(node);
               }
               catch (e) {
-                console.error(e);
+                if (this.onerror)
+                  this.onerror(e);
               }
             }
           }
@@ -968,7 +1006,8 @@
                 listener.callback(recPath[recPath.length-1]);
               }
               catch (e) {
-                console.error(e);
+                if (this.onerror)
+                  this.onerror(e);
               }
             }
           }
