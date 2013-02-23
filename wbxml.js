@@ -23,9 +23,9 @@
 }(this, function() {
   'use strict';
 
-  let exports = {};
+  var exports = {};
 
-  const Tokens = {
+  var Tokens = {
     SWITCH_PAGE: 0x00,
     END:         0x01,
     ENTITY:      0x02,
@@ -96,8 +96,8 @@
     this.strings = [];
     this.offsets = {};
 
-    let start = 0;
-    for (let i = 0; i < data.length; i++) {
+    var start = 0;
+    for (var i = 0; i < data.length; i++) {
       if (data[i] === 0) {
         this.offsets[start] = this.strings.length;
         this.strings.push(decoder.decode( data.subarray(start, i) ));
@@ -114,8 +114,8 @@
         if (offset < 0)
           throw new ParseError('offset must be >= 0');
 
-        let curr = 0;
-        for (let i = 0; i < this.strings.length; i++) {
+        var curr = 0;
+        for (var i = 0; i < this.strings.length; i++) {
           // Add 1 to the current string's length here because we stripped a
           // null-terminator earlier.
           if (offset < curr + this.strings[i].length + 1)
@@ -132,20 +132,24 @@
     codepages.__tagnames__ = {};
     codepages.__attrdata__ = {};
 
-    for (let [name, page] in Iterator(codepages)) {
+    for (var iter in Iterator(codepages)) {
+      var name = iter[0], page = iter[1];
       if (name.match(/^__/))
         continue;
 
       if (page.Tags) {
-        let [,v] = Iterator(page.Tags).next();
-        codepages.__nsnames__[v >> 8] = name;
+        var v = Iterator(page.Tags).next();
+        codepages.__nsnames__[v[1] >> 8] = name;
 
-        for (let [tag, value] in Iterator(page.Tags))
+        for (var iter2 in Iterator(page.Tags)) {
+          var tag = iter2[0], value = iter2[1];
           codepages.__tagnames__[value] = tag;
+        }
       }
 
       if (page.Attrs) {
-        for (let [attr, data] in Iterator(page.Attrs)) {
+        for (var iter in Iterator(page.Attrs)) {
+          var attr = iter[0], data = iter[1];
           if (!('name' in data))
             data.name = attr;
           codepages.__attrdata__[data.value] = data;
@@ -156,7 +160,7 @@
   }
   exports.CompileCodepages = CompileCodepages;
 
-  const mib2str = {
+  var mib2str = {
       3: 'US-ASCII',
       4: 'ISO-8859-1',
       5: 'ISO-8859-2',
@@ -173,9 +177,10 @@
 
   // TODO: Really, we should build our own map here with synonyms for the
   // various encodings, but this is a step in the right direction.
-  const str2mib = {};
-  for (let [k, v] in Iterator(mib2str))
-    str2mib[v] = k;
+  var str2mib = {};
+  for (var iter in Iterator(mib2str)) {
+    str2mib[iter[1]] = iter[0];
+  }
 
   function Element(ownerDocument, type, tag) {
     this.ownerDocument = ownerDocument;
@@ -183,11 +188,13 @@
     this._attrs = {};
 
     if (typeof tag === 'string') {
-      let pieces = tag.split(':');
-      if (pieces.length === 1)
+      var pieces = tag.split(':');
+      if (pieces.length === 1) {
         this.localTagName = pieces[0];
-      else
-        [this.namespaceName, this.localTagName] = pieces;
+      } else {
+        this.namespaceName = pieces[0];
+        this.localTagName = pieces[1];
+      }
     }
     else {
       this.tag = tag;
@@ -206,17 +213,20 @@
   exports.Element = Element;
   Element.prototype = {
     get tagName() {
-      let ns = this.namespaceName;
+      var ns = this.namespaceName;
       ns = ns ? ns + ':' : '';
       return ns + this.localTagName;
     },
 
-    get attributes() {
-      for (let [name, pieces] in Iterator(this._attrs)) {
-        let [namespace, localName] = name.split(':');
-        yield { name: name, namespace: namespace, localName: localName,
-                value: this._getAttribute(pieces) };
+    getAttributes: function() {
+      var attributes = [];
+      for (var iter in Iterator(this._attrs)) {
+        var name = iter[0], pieces = iter[1];
+        var data = name.split(':');
+        attributes.push({ name: name, namespace: data[0], localName: data[1],
+                          value: this._getAttribute(pieces) });
       }
+      return attributes;
     },
 
     getAttribute: function(attr) {
@@ -229,10 +239,11 @@
     },
 
     _getAttribute: function(pieces) {
-      let strValue = '';
-      let array = [];
+      var strValue = '';
+      var array = [];
 
-      for (let [,hunk] in Iterator(pieces)) {
+      for (var iter in Iterator(pieces)) {
+        var hunk = iter[1];
         if (hunk instanceof Extension) {
           if (strValue) {
             array.push(strValue);
@@ -261,13 +272,13 @@
         return this._attrs[attr] = [];
       }
       else {
-        let namespace = attr >> 8;
-        let localAttr = attr & 0xff;
+        var namespace = attr >> 8;
+        var localAttr = attr & 0xff;
 
-        let localName = this.ownerDocument._codepages.__attrdata__[localAttr]
+        var localName = this.ownerDocument._codepages.__attrdata__[localAttr]
                             .name;
-        let nsName = this.ownerDocument._codepages.__nsnames__[namespace];
-        let name = nsName + ':' + localName;
+        var nsName = this.ownerDocument._codepages.__nsnames__[namespace];
+        var name = nsName + ':' + localName;
 
         if (name in this._attrs)
           throw new ParseError('attribute '+name+' is repeated');
@@ -355,8 +366,8 @@
     },
 
     _get_mb_uint32: function() {
-      let b;
-      let result = 0;
+      var b;
+      var result = 0;
       do {
         b = this._get_uint8();
         result = result*128 + (b & 0x7f);
@@ -365,13 +376,13 @@
     },
 
     _get_slice: function(length) {
-      let start = this._index;
+      var start = this._index;
       this._index += length;
       return this._data.subarray(start, this._index);
     },
 
     _get_c_string: function() {
-      let start = this._index;
+      var start = this._index;
       while (this._get_uint8());
       return this._data.subarray(start, this._index - 1);
     },
@@ -379,13 +390,13 @@
     rewind: function() {
       this._index = 0;
 
-      let v = this._get_uint8();
+      var v = this._get_uint8();
       this.version = ((v & 0xf0) + 1).toString() + '.' + (v & 0x0f).toString();
       this.pid = this._get_mb_uint32();
       this.charset = mib2str[this._get_mb_uint32()] || 'unknown';
       this._decoder = TextDecoder(this.charset);
 
-      let tbl_len = this._get_mb_uint32();
+      var tbl_len = this._get_mb_uint32();
       this.strings = new StringTable(this._get_slice(tbl_len), this._decoder);
 
       this.document = this._getDocument();
@@ -425,20 +436,20 @@
     // zero         = u_int8                // containing the value zero (0).
     _getDocument: function() {
       // Parser states
-      const States = {
+      var States = {
         BODY: 0,
         ATTRIBUTES: 1,
         ATTRIBUTE_PI: 2,
       };
 
-      let state = States.BODY;
-      let currentNode;
-      let currentAttr;
-      let codepage = 0;
-      let depth = 0;
-      let foundRoot = false;
+      var state = States.BODY;
+      var currentNode;
+      var currentAttr;
+      var codepage = 0;
+      var depth = 0;
+      var foundRoot = false;
 
-      let appendString = (function(s) {
+      var appendString = (function(s) {
         if (state === States.BODY) {
           if (!currentNode)
             currentNode = new Text(this, s);
@@ -453,7 +464,7 @@
       }).bind(this);
 
       try { while (true) {
-        let tok = this._get_uint8();
+        var tok = this._get_uint8();
 
         if (tok === Tokens.SWITCH_PAGE) {
           codepage = this._get_uint8();
@@ -482,7 +493,7 @@
         else if (tok === Tokens.ENTITY) {
           if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected ENTITY token');
-          let e = this._get_mb_uint32();
+          var e = this._get_mb_uint32();
           appendString('&#'+e+';');
         }
         else if (tok === Tokens.STR_I) {
@@ -502,14 +513,14 @@
         else if (tok === Tokens.STR_T) {
           if (state === States.BODY && depth === 0)
             throw new ParseError('unexpected STR_T token');
-          let r = this._get_mb_uint32();
+          var r = this._get_mb_uint32();
           appendString(this.strings.get(r));
         }
         else if (tok === Tokens.OPAQUE) {
           if (state !== States.BODY)
             throw new ParseError('unexpected OPAQUE token');
-          let len = this._get_mb_uint32();
-          let data = this._get_slice(len);
+          var len = this._get_mb_uint32();
+          var data = this._get_slice(len);
 
           if (currentNode) {
             yield currentNode;
@@ -518,10 +529,10 @@
           yield new Opaque(this, data);
         }
         else if (((tok & 0x40) || (tok & 0x80)) && (tok & 0x3f) < 3) {
-          let hi = tok & 0xc0;
-          let lo = tok & 0x3f;
-          let subtype;
-          let value;
+          var hi = tok & 0xc0;
+          var lo = tok & 0x3f;
+          var subtype;
+          var value;
 
           if (hi === Tokens.EXT_I_0) {
             subtype = 'string';
@@ -536,7 +547,7 @@
             value = null;
           }
 
-          let ext = new Extension(this, subtype, lo, value);
+          var ext = new Extension(this, subtype, lo, value);
           if (state === States.BODY) {
             if (currentNode) {
               yield currentNode;
@@ -555,9 +566,9 @@
             foundRoot = true;
           }
 
-          let tag = (codepage << 8) + (tok & 0x3f);
+          var tag = (codepage << 8) + (tok & 0x3f);
           if ((tok & 0x3f) === Tokens.LITERAL) {
-            let r = this._get_mb_uint32();
+            var r = this._get_mb_uint32();
             tag = this.strings.get(r);
           }
 
@@ -578,10 +589,10 @@
           }
         }
         else { // if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI)
-          let attr = (codepage << 8) + tok;
+          var attr = (codepage << 8) + tok;
           if (!(tok & 0x80)) {
             if (tok === Tokens.LITERAL) {
-              let r = this._get_mb_uint32();
+              var r = this._get_mb_uint32();
               attr = this.strings.get(r);
             }
             if (state === States.ATTRIBUTE_PI) {
@@ -604,14 +615,14 @@
     },
 
     dump: function(indentation, header) {
-      let result = '';
+      var result = '';
 
       if (indentation === undefined)
         indentation = 2;
-      let indent = function(level) {
+      var indent = function(level) {
         return new Array(level*indentation + 1).join(' ');
       };
-      let tagstack = [];
+      var tagstack = [];
 
       if (header) {
         result += 'Version: ' + this.version + '\n';
@@ -621,12 +632,14 @@
                   this.strings.strings.join('"\n  "') + '"\n\n';
       }
 
-      let newline = false;
-      for (let node in this.document) {
+      var newline = false;
+      for (var node in this.document) {
         if (node.type === 'TAG' || node.type === 'STAG') {
           result += indent(tagstack.length) + '<' + node.tagName;
 
-          for (let attr in node.attributes) {
+          var attributes = node.getAttributes();
+          for (var i = 0; i < attributes.length; i++) {
+            var attr = attributes[i];
             result += ' ' + attr.name + '="' + attr.value + '"';
           }
 
@@ -638,7 +651,7 @@
             result += '/>\n';
         }
         else if (node.type === 'ETAG') {
-          let tag = tagstack.pop();
+          var tag = tagstack.pop();
           result += indent(tagstack.length) + '</' + tag + '>\n';
         }
         else if (node.type === 'TEXT') {
@@ -669,27 +682,29 @@
     this._codepage = 0;
     this._tagStack = [];
 
-    let [major, minor] = version.split('.').map(function(x) {
+    var infos = version.split('.').map(function(x) {
       return parseInt(x);
     });
-    let v = ((major - 1) << 4) + minor;
+    var major = infos[0], minor = infos[1];
+    var v = ((major - 1) << 4) + minor;
 
-    let charsetNum = charset;
+    var charsetNum = charset;
     if (typeof charset === 'string') {
       charsetNum = str2mib[charset];
       if (charsetNum === undefined)
         throw new Error('unknown charset '+charset);
     }
-    let encoder = this._encoder = TextEncoder(charset);
+    var encoder = this._encoder = TextEncoder(charset);
 
     this._write(v);
     this._write(pid);
     this._write(charsetNum);
     if (strings) {
-      let bytes = strings.map(function(s) { return encoder.encode(s); });
-      let len = bytes.reduce(function(x, y) { return x + y.length + 1; }, 0);
+      var bytes = strings.map(function(s) { return encoder.encode(s); });
+      var len = bytes.reduce(function(x, y) { return x + y.length + 1; }, 0);
       this._write_mb_uint32(len);
-      for (let [,b] in Iterator(bytes)) {
+      for (var iter in Iterator(bytes)) {
+        var b = iter[1];
         this._write_bytes(b);
         this._write(0x00);
       }
@@ -717,7 +732,7 @@
   };
 
   Writer.Extension = function(subtype, index, data) {
-    const validTypes = {
+    var validTypes = {
       'string':  { value:     Tokens.EXT_I_0,
                    validator: function(data) {
                      return typeof data === 'string';
@@ -732,7 +747,7 @@
                    } },
     };
 
-    let info = validTypes[subtype];
+    var info = validTypes[subtype];
     if (!info)
       throw new Error('Invalid WBXML Extension type');
     if (!info.validator(data))
@@ -756,9 +771,9 @@
       // Expand the buffer by a factor of two if we ran out of space.
       if (this._pos === this._buffer.length - 1) {
         this._rawbuf = new ArrayBuffer(this._rawbuf.byteLength * 2);
-        let buffer = new Uint8Array(this._rawbuf);
+        var buffer = new Uint8Array(this._rawbuf);
 
-        for (let i = 0; i < this._buffer.length; i++)
+        for (var i = 0; i < this._buffer.length; i++)
           buffer[i] = this._buffer[i];
 
         this._buffer = buffer;
@@ -768,19 +783,19 @@
     },
 
     _write_mb_uint32: function(value) {
-      let bytes = [];
+      var bytes = [];
       bytes.push(value % 0x80);
       while (value >= 0x80) {
         value >>= 7;
         bytes.push(0x80 + (value % 0x80));
       }
 
-      for (let i = bytes.length - 1; i >= 0; i--)
+      for (var i = bytes.length - 1; i >= 0; i--)
         this._write(bytes[i]);
     },
 
     _write_bytes: function(bytes) {
-      for (let i = 0; i < bytes.length; i++)
+      for (var i = 0; i < bytes.length; i++)
         this._write(bytes[i]);
     },
 
@@ -800,7 +815,7 @@
       if (tag === undefined)
         throw new Error('unknown tag');
 
-      let flags = 0x00;
+      var flags = 0x00;
       if (stag)
         flags += 0x40;
       if (attrs.length)
@@ -816,8 +831,10 @@
       }
 
       if (attrs.length) {
-        for (let [,attr] in Iterator(attrs))
+        for (var iter in Iterator(attrs)) {
+          var attr = iter[1];
           this._writeAttr(attr);
+        }
         this._write(Tokens.END);
       }
     },
@@ -841,8 +858,10 @@
 
     _writeText: function(value, inAttr) {
       if (Array.isArray(value)) {
-        for (let [,piece] in Iterator(value))
+        for (var iter in Iterator(value)) {
+          var piece = iter[1];
           this._writeText(piece, inAttr);
+        }
       }
       else if (value instanceof Writer.StringTableRef) {
         this._write(Tokens.STR_T);
@@ -879,14 +898,14 @@
     },
 
     tag: function(tag) {
-      let tail = arguments.length > 1 ? arguments[arguments.length - 1] : null;
+      var tail = arguments.length > 1 ? arguments[arguments.length - 1] : null;
       if (tail === null || tail instanceof Writer.Attribute) {
-        let rest = Array.prototype.slice.call(arguments, 1);
+        var rest = Array.prototype.slice.call(arguments, 1);
         this._writeTag(tag, false, rest);
         return this;
       }
       else {
-        let head = Array.prototype.slice.call(arguments, 0, -1);
+        var head = Array.prototype.slice.call(arguments, 0, -1);
         return this.stag.apply(this, head)
                      .text(tail)
                    .etag();
@@ -894,7 +913,7 @@
     },
 
     stag: function(tag) {
-      let rest = Array.prototype.slice.call(arguments, 1);
+      var rest = Array.prototype.slice.call(arguments, 1);
       this._writeTag(tag, true, rest);
       this._tagStack.push(tag);
       return this;
@@ -903,7 +922,7 @@
     etag: function(tag) {
       if (this._tagStack.length === 0)
         throw new Error('Spurious etag() call!');
-      let expectedTag = this._tagStack.pop();
+      var expectedTag = this._tagStack.pop();
       if (tag !== undefined && tag !== expectedTag)
         throw new Error('Closed the wrong tag');
 
@@ -934,7 +953,7 @@
         this._write_str(data);
       }
       else {
-        for (let i = 0; i < data.length; i++)
+        for (var i = 0; i < data.length; i++)
           this._write(data[i]);
       }
       return this;
@@ -967,14 +986,15 @@
     },
 
     run: function(reader) {
-      let fullPath = [];
-      let recPath = [];
-      let recording = 0;
+      var fullPath = [];
+      var recPath = [];
+      var recording = 0;
 
-      for (let node in reader.document) {
+      for (var node in reader.document) {
         if (node.type === 'TAG') {
           fullPath.push(node.tag);
-          for (let [,listener] in Iterator(this.listeners)) {
+          for (var iter in Iterator(this.listeners)) {
+            var listener = iter[1];
             if (this._pathMatches(fullPath, listener.path)) {
               node.children = [];
               try {
@@ -992,14 +1012,16 @@
         else if (node.type === 'STAG') {
           fullPath.push(node.tag);
 
-          for (let [,listener] in Iterator(this.listeners)) {
+          for (var iter in Iterator(this.listeners)) {
+            var listener = iter[1];
             if (this._pathMatches(fullPath, listener.path)) {
               recording++;
             }
           }
         }
         else if (node.type === 'ETAG') {
-          for (let [,listener] in Iterator(this.listeners)) {
+          for (var iter in Iterator(this.listeners)) {
+            var listener = iter[1];
             if (this._pathMatches(fullPath, listener.path)) {
               recording--;
               try {
