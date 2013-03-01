@@ -148,8 +148,8 @@
       }
 
       if (page.Attrs) {
-        for (var iter in Iterator(page.Attrs)) {
-          var attr = iter[0], data = iter[1];
+        for (var iter3 in Iterator(page.Attrs)) {
+          var attr = iter3[0], data = iter3[1];
           if (!('name' in data))
             data.name = attr;
           codepages.__attrdata__[data.value] = data;
@@ -388,6 +388,12 @@
     },
 
     rewind: function() {
+      // Although in theory we could cache this.document since we no longer use
+      // iterators, there is clearly some kind of rep exposure that goes awry
+      // for us, so I'm having us re-do our work.  This does not matter in the
+      // normal use-case, just for debugging and just for our test server, which
+      // both rely on rewind().
+
       this._index = 0;
 
       var v = this._get_uint8();
@@ -448,6 +454,7 @@
       var codepage = 0;
       var depth = 0;
       var foundRoot = false;
+      var doc = [];
 
       var appendString = (function(s) {
         if (state === States.BODY) {
@@ -469,20 +476,20 @@
         if (tok === Tokens.SWITCH_PAGE) {
           codepage = this._get_uint8();
           if (!(codepage in this._codepages.__nsnames__))
-            throw new ParseError('unknown codepage '+codepage)
+            throw new ParseError('unknown codepage '+codepage);
         }
         else if (tok === Tokens.END) {
           if (state === States.BODY && depth-- > 0) {
             if (currentNode) {
-              yield currentNode;
+              doc.push(currentNode);
               currentNode = null;
             }
-            yield new EndTag(this);
+            doc.push(new EndTag(this));
           }
           else if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI) {
             state = States.BODY;
 
-            yield currentNode;
+            doc.push(currentNode);
             currentNode = null;
             currentAttr = null;
           }
@@ -507,7 +514,7 @@
           state = States.ATTRIBUTE_PI;
 
           if (currentNode)
-            yield currentNode;
+            doc.push(currentNode);
           currentNode = new ProcessingInstruction(this);
         }
         else if (tok === Tokens.STR_T) {
@@ -523,10 +530,10 @@
           var data = this._get_slice(len);
 
           if (currentNode) {
-            yield currentNode;
+            doc.push(currentNode);
             currentNode = null;
           }
-          yield new Opaque(this, data);
+          doc.push(new Opaque(this, data));
         }
         else if (((tok & 0x40) || (tok & 0x80)) && (tok & 0x3f) < 3) {
           var hi = tok & 0xc0;
@@ -550,10 +557,10 @@
           var ext = new Extension(this, subtype, lo, value);
           if (state === States.BODY) {
             if (currentNode) {
-              yield currentNode;
+              doc.push(currentNode);
               currentNode = null;
             }
-            yield ext;
+            doc.push(ext);
           }
           else { // if (state === States.ATTRIBUTES || state === States.ATTRIBUTE_PI)
             currentAttr.push(ext);
@@ -573,7 +580,7 @@
           }
 
           if (currentNode)
-            yield currentNode;
+            doc.push(currentNode);
           currentNode = new Element(this, (tok & 0x40) ? 'STAG' : 'TAG', tag);
           if (tok & 0x40)
             depth++;
@@ -584,7 +591,7 @@
           else {
             state = States.BODY;
 
-            yield currentNode;
+            doc.push(currentNode);
             currentNode = null;
           }
         }
@@ -612,6 +619,7 @@
         if (!(e instanceof StopIteration))
           throw e;
       }
+      return doc;
     },
 
     dump: function(indentation, header) {
@@ -633,7 +641,10 @@
       }
 
       var newline = false;
-      for (var node in this.document) {
+      var doc = this.document;
+      var doclen = doc.length;
+      for (var iNode = 0; iNode < doclen; iNode++) {
+        var node = doc[iNode];
         if (node.type === 'TAG' || node.type === 'STAG') {
           result += indent(tagstack.length) + '<' + node.tagName;
 
@@ -990,7 +1001,10 @@
       var recPath = [];
       var recording = 0;
 
-      for (var node in reader.document) {
+      var doc = reader.document;
+      var doclen = doc.length;
+      for (var iNode = 0; iNode < doclen; iNode++) {
+        var node = doc[iNode];
         if (node.type === 'TAG') {
           fullPath.push(node.tag);
           for (var iter in Iterator(this.listeners)) {

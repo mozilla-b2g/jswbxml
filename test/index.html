@@ -16,6 +16,12 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>WBXML Tests</title>
+    <script type="application/javascript">
+      // Disable TextEncoder/TextDecoder so the polyfill still gets used so
+      // US-ASCII still works.
+      window.TextEncoder = null;
+      window.TextDecoder = null;
+    </script>
     <script type="application/javascript;version=1.8"
             src="../encoding.js"></script>
     <script type="application/javascript;version=1.8"
