@@ -76,7 +76,7 @@ function assert_attr_equals(a, b, reason) {
 function zip() {
   while (true) {
     let ends = 0;
-    let step = []
+    let step = [];
     for (let i = 0; i < arguments.length; i++) {
       try {
         step.push(arguments[i].next());
@@ -151,7 +151,7 @@ function verify_document(reader, expectedVersion, expectedPid, expectedCharset,
   assert_equals(reader.charset, expectedCharset);
 
   for (let [actual, expected] in
-       zip( reader.document, iter_values(expectedNodes) )) {
+       zip( iter_values(reader.document), iter_values(expectedNodes) ) ) {
     assert_equals(actual.ownerDocument, reader);
     verify_node(actual, expected);
   }
