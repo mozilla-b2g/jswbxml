@@ -29,10 +29,10 @@ function print(s) {
 // equals will be too deep because it will go into the buffer instances,
 // which is not what we want when we have created a subarray() since the
 // semantic arrays can be equal but the backing buffers have no such constraint.
-function assert_typedarrays_equal(a, b) {
+function assert_typedarrays_equal(a, b, path) {
   assert.equal(a.length, b.length);
   for (var i = 0; i < a.length; i++) {
-    assert.equal(a[i], b[i]);
+    assert.equal(a[i], b[i], 'path: ' + path + ', typed array index ' + i);
   }
 }
 
@@ -58,7 +58,7 @@ function assert_attr_equals(a, b, reason) {
   assert(result, reason ? reason : a + ' should be equal to ' + b);
 }
 
-function verify_node(actual, expected) {
+function verify_node(actual, expected, path) {
   assert.equal(actual.type, expected.type);
 
   switch (actual.type) {
@@ -105,7 +105,7 @@ function verify_node(actual, expected) {
     break;
   case 'OPAQUE':
     // typed arrays need special handling because of views
-    assert_typedarrays_equal(actual.data, expected.data);
+    assert_typedarrays_equal(actual.data, expected.data, path);
     break;
   }
 }
@@ -113,16 +113,16 @@ function verify_node(actual, expected) {
 
 function verify_document(reader, expectedVersion, expectedPid, expectedCharset,
                          expectedNodes) {
-  assert.equal(reader.version, expectedVersion);
-  assert.equal(reader.pid, expectedPid);
-  assert.equal(reader.charset, expectedCharset);
+  assert.equal(reader.version, expectedVersion, 'version mismatch');
+  assert.equal(reader.pid, expectedPid, 'pid mismatch');
+  assert.equal(reader.charset, expectedCharset, 'charset mismatch');
 
-  assert.equal(reader.document.length, expectedNodes.length);
+  assert.equal(reader.document.length, expectedNodes.length, 'node count');
   for (var i = 0; i < expectedNodes.length; i++) {
     var actual = reader.document[i];
     var expected = expectedNodes[i];
-    assert.strictEqual(actual.ownerDocument, reader);
-    verify_node(actual, expected);
+    assert.strictEqual(actual.ownerDocument, reader, 'owner mismatch');
+    verify_node(actual, expected, '' + i);
   }
 }
 
@@ -140,6 +140,10 @@ function verify_subdocument(actual, expected) {
   }
 }
 
+/**
+ * Create a typed array from an array or a string that we treat as a binary
+ * string.
+ */
 function binify(src) {
   var dest = new Uint8Array(src.length);
   for (var i = 0; i < src.length; i++) {
