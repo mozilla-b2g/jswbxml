@@ -14,12 +14,22 @@
  */
 
 (function (root, factory) {
-  if (typeof exports === 'object')
+  // node.js
+  if (typeof exports === 'object') {
     module.exports = factory();
-  else if (typeof define === 'function' && define.amd)
+    this.Blob = require('w3c-blob');
+    var stringencoding = require('stringencoding');
+    this.TextEncoder = stringencoding.TextEncoder;
+    this.TextDecoder = stringencoding.TextDecoder;
+  }
+  // browser environment, AMD loader
+  else if (typeof define === 'function' && define.amd) {
     define(factory);
-  else
+  }
+  // browser environment, no AMD loader
+  else {
     root.WBXML = factory();
+  }
 }(this, function() {
   'use strict';
 
@@ -47,6 +57,8 @@
     OPAQUE:      0xC3,
     LITERAL_AC:  0xC4,
   };
+
+  var EndOfData = {};
 
   /**
    * Create a constructor for a custom error type that works like a built-in
@@ -132,28 +144,33 @@
     codepages.__tagnames__ = {};
     codepages.__attrdata__ = {};
 
-    for (var iter in Iterator(codepages)) {
-      var name = iter[0], page = iter[1];
+    for (var name in codepages) {
+      var page = codepages[name];
       if (name.match(/^__/))
         continue;
 
       if (page.Tags) {
-        var v = Iterator(page.Tags).next();
-        codepages.__nsnames__[v[1] >> 8] = name;
+        // The upper byte(s) correspond to the namespace.
+        var tagName, tagValue;
+        for (tagName in page.Tags) {
+          tagValue = page.Tags[tagName];
+          codepages.__nsnames__[tagValue >> 8] = name;
+          break;
+        }
 
-        for (var iter2 in Iterator(page.Tags)) {
-          var tag = iter2[0], value = iter2[1];
-          codepages.__tagnames__[value] = tag;
+        for (tagName in page.Tags) {
+          tagValue = page.Tags[tagName];
+          codepages.__tagnames__[tagValue] = tagName;
         }
       }
 
       if (page.Attrs) {
-        for (var iter3 in Iterator(page.Attrs)) {
-          var attr = iter3[0], data = iter3[1];
-          if (!('name' in data))
-            data.name = attr;
-          codepages.__attrdata__[data.value] = data;
-          page.Attrs[attr] = data.value;
+        for (var attrName in page.Attrs) {
+          var attrData = page.Attrs[attrName];
+          if (!('name' in attrData))
+            attrData.name = attrName;
+          codepages.__attrdata__[attrData.value] = attrData;
+          page.Attrs[attrName] = attrData.value;
         }
       }
     }
@@ -178,8 +195,9 @@
   // TODO: Really, we should build our own map here with synonyms for the
   // various encodings, but this is a step in the right direction.
   var str2mib = {};
-  for (var iter in Iterator(mib2str)) {
-    str2mib[iter[1]] = iter[0];
+  for (var mibId in mib2str) {
+    var mibStr = mib2str[mibId];
+    str2mib[mibStr] = mibId;
   }
 
   function Element(ownerDocument, type, tag) {
@@ -220,8 +238,8 @@
 
     getAttributes: function() {
       var attributes = [];
-      for (var iter in Iterator(this._attrs)) {
-        var name = iter[0], pieces = iter[1];
+      for (var name in this._attrs) {
+        var pieces = this._attrs[name];
         var data = name.split(':');
         attributes.push({ name: name, namespace: data[0], localName: data[1],
                           value: this._getAttribute(pieces) });
@@ -242,8 +260,8 @@
       var strValue = '';
       var array = [];
 
-      for (var iter in Iterator(pieces)) {
-        var hunk = iter[1];
+      for (var i = 0; i < pieces.length; i++) {
+        var hunk = pieces[i];
         if (hunk instanceof Extension) {
           if (strValue) {
             array.push(strValue);
@@ -361,7 +379,7 @@
   Reader.prototype = {
     _get_uint8: function() {
       if (this._index === this._data.length)
-        throw StopIteration;
+        throw EndOfData;
       return this._data[this._index++];
     },
 
@@ -616,7 +634,7 @@
           }
         }
       } } catch (e) {
-        if (!(e instanceof StopIteration))
+        if (e !== EndOfData)
           throw e;
       }
       return doc;
@@ -714,8 +732,8 @@
       var bytes = strings.map(function(s) { return encoder.encode(s); });
       var len = bytes.reduce(function(x, y) { return x + y.length + 1; }, 0);
       this._write_mb_uint32(len);
-      for (var iter in Iterator(bytes)) {
-        var b = iter[1];
+      for (var i = 0; i < bytes.length; i++) {
+        var b = bytes[i];
         this._write_bytes(b);
         this._write(0x00);
       }
@@ -773,7 +791,7 @@
 
   Writer.a = function(name, val) { return new Writer.Attribute(name, val); };
   Writer.str_t = function(index) { return new Writer.StringTableRef(index); };
-  Writer.ent = function(code) { return new Writer.Entity(code) };
+  Writer.ent = function(code) { return new Writer.Entity(code); };
   Writer.ext = function(subtype, index, data) { return new Writer.Extension(
     subtype, index, data); };
 
@@ -842,8 +860,8 @@
       }
 
       if (attrs.length) {
-        for (var iter in Iterator(attrs)) {
-          var attr = iter[1];
+        for (var i = 0; i < attrs.length; i++) {
+          var attr = attrs[i];
           this._writeAttr(attr);
         }
         this._write(Tokens.END);
@@ -869,8 +887,8 @@
 
     _writeText: function(value, inAttr) {
       if (Array.isArray(value)) {
-        for (var iter in Iterator(value)) {
-          var piece = iter[1];
+        for (var i = 0; i < value.length; i++) {
+          var piece = value[i];
           this._writeText(piece, inAttr);
         }
       }
@@ -1003,12 +1021,13 @@
 
       var doc = reader.document;
       var doclen = doc.length;
+      var listeners = this.listeners, iListener, listener;
       for (var iNode = 0; iNode < doclen; iNode++) {
         var node = doc[iNode];
         if (node.type === 'TAG') {
           fullPath.push(node.tag);
-          for (var iter in Iterator(this.listeners)) {
-            var listener = iter[1];
+          for (iListener = 0; iListener < listeners.length; iListener++) {
+            listener = listeners[iListener];
             if (this._pathMatches(fullPath, listener.path)) {
               node.children = [];
               try {
@@ -1026,16 +1045,16 @@
         else if (node.type === 'STAG') {
           fullPath.push(node.tag);
 
-          for (var iter in Iterator(this.listeners)) {
-            var listener = iter[1];
+          for (iListener = 0; iListener < listeners.length; iListener++) {
+            listener = listeners[iListener];
             if (this._pathMatches(fullPath, listener.path)) {
               recording++;
             }
           }
         }
         else if (node.type === 'ETAG') {
-          for (var iter in Iterator(this.listeners)) {
-            var listener = iter[1];
+          for (iListener = 0; iListener < listeners.length; iListener++) {
+            listener = listeners[iListener];
             if (this._pathMatches(fullPath, listener.path)) {
               recording--;
               try {
