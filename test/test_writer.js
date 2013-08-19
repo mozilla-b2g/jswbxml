@@ -15,8 +15,19 @@
 
 'use strict';
 
-function test_writer_basic() {
-  let codepages = {
+var mocha = require('mocha'),
+    assert = require('chai').assert,
+    WBXML = require('../wbxml'),
+    helpers = require('./helpers');
+
+var verify_document = helpers.verify_document;
+var verify_subdocument  = helpers.verify_subdocument;
+var binify = helpers.binify;
+
+describe('writer', function() {
+
+it('basic', function test_writer_basic() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -26,14 +37,14 @@ function test_writer_basic() {
   };
   WBXML.CompileCodepages(codepages);
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
-  let cp = codepages.Default.Tags;
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
+  var cp = codepages.Default.Tags;
   w.stag(cp.ROOT)
      .tag(cp.CARD)
      .tag(cp.CARD, '0')
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'TAG', tag: cp.CARD, localTagName: 'CARD' },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
@@ -42,12 +53,12 @@ function test_writer_basic() {
     { type: 'ETAG' },
   ];
 
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_attrs() {
-  let codepages = {
+it('attrs', function test_writer_attrs() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -62,12 +73,12 @@ function test_writer_attrs() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
+  var cp = codepages.Default.Tags;
+  var cpa = codepages.Default.Attrs;
 
-  let a = WBXML.Writer.a;
+  var a = WBXML.Writer.a;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT, a(cpa.TYPE, 'list'))
      .tag(cp.CARD, a(cpa.TYPE, a(cpa.VCARD)),
                    a(cpa.EMAIL, ['foo@bar', a(cpa.DOT_COM)]))
@@ -75,7 +86,7 @@ function test_writer_attrs() {
                    a(cpa.EMAIL, ['bob@bob', a(cpa.DOT_COM)]), 'Bob')
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT',
       attributes: { TYPE: 'list' } },
       { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
@@ -87,12 +98,12 @@ function test_writer_attrs() {
     { type: 'ETAG' },
   ];
 
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_string_table() {
-  let codepages = {
+it('string table', function test_writer_string_table() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -105,13 +116,13 @@ function test_writer_string_table() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
+  var cp = codepages.Default.Tags;
+  var cpa = codepages.Default.Attrs;
 
-  let a = WBXML.Writer.a;
-  let str_t = WBXML.Writer.str_t;
+  var a = WBXML.Writer.a;
+  var str_t = WBXML.Writer.str_t;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII',
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8',
                            ['list', '@example.com', 'foo', ', ']);
   w.stag(cp.ROOT, a(cpa.TYPE, str_t(0)))
      .tag(cp.CARD, a(cpa.EMAIL, [str_t(18), str_t(5)]), str_t(18))
@@ -119,7 +130,7 @@ function test_writer_string_table() {
           ['Danson', str_t(22), 'Ted'])
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT',
       attributes: { TYPE: 'list' } },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
@@ -133,12 +144,12 @@ function test_writer_string_table() {
     { type: 'ETAG' },
   ];
 
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_entity() {
-  let codepages = {
+it('entity', function test_writer_entity() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -147,27 +158,27 @@ function test_writer_entity() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let ent = WBXML.Writer.ent;
+  var cp = codepages.Default.Tags;
+  var ent = WBXML.Writer.ent;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
     .tag(cp.CARD, ['Ted', ent(160), 'Danson'])
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
         { type: 'TEXT', textContent: 'Ted&#160;Danson' },
       { type: 'ETAG' },
     { type: 'ETAG' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_pi() {
-  let codepages = {
+it('pi', function test_writer_pi() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -180,10 +191,10 @@ function test_writer_pi() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
+  var cp = codepages.Default.Tags;
+  var cpa = codepages.Default.Attrs;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.pi(cpa.PI)
    .stag(cp.ROOT)
      .stag(cp.CARD)
@@ -192,7 +203,7 @@ function test_writer_pi() {
    .etag()
    .pi(cpa.PI, 'END');
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'PI', target: 'PI', data: ''},
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
@@ -201,12 +212,12 @@ function test_writer_pi() {
     { type: 'ETAG' },
     { type: 'PI', target: 'PI', data: 'END' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_extension_tag() {
-  let codepages = {
+it('extension tag', function test_writer_extension_tag() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -215,28 +226,28 @@ function test_writer_extension_tag() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
+  var cp = codepages.Default.Tags;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .ext('string', 0, 'string')
      .ext('integer', 1, 42)
      .ext('byte', 2)
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'EXT', subtype: 'string', index: 0, value: 'string' },
       { type: 'EXT', subtype: 'integer', index: 1, value: 42 },
       { type: 'EXT', subtype: 'byte', index: 2, value: null },
     { type: 'ETAG' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_extension_attr() {
-  let codepages = {
+it('extension attr', function test_writer_extension_attr() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -249,20 +260,20 @@ function test_writer_extension_attr() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
+  var cp = codepages.Default.Tags;
+  var cpa = codepages.Default.Attrs;
 
-  let a = WBXML.Writer.a;
-  let ext = WBXML.Writer.ext;
+  var a = WBXML.Writer.a;
+  var ext = WBXML.Writer.ext;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .tag(cp.CARD, a(cpa.TYPE, ext('string', 0, 'string')))
      .tag(cp.CARD, a(cpa.TYPE, ['vCard', ext('integer', 1, 42)]))
      .tag(cp.CARD, a(cpa.TYPE_LIST, ext('byte', 2)))
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'TAG', tag: cp.CARD, localTagName: 'CARD',
         attributes: { TYPE: { type: 'EXT', subtype: 'string', index: 0,
@@ -277,12 +288,12 @@ function test_writer_extension_attr() {
                                value: null }] } },
     { type: 'ETAG' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_opaque() {
-  let codepages = {
+it('opaque', function test_writer_opaque() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -291,26 +302,26 @@ function test_writer_opaque() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
+  var cp = codepages.Default.Tags;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .opaque('string')
      .opaque(binify('string'))
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'OPAQUE', data: binify('string') },
       { type: 'OPAQUE', data: binify('string') },
     { type: 'ETAG' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
-}
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+});
 
-function test_writer_utf8() {
-  let codepages = {
+it('utf8', function test_writer_utf8() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -323,13 +334,13 @@ function test_writer_utf8() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
-  let cpa = codepages.Default.Attrs;
+  var cp = codepages.Default.Tags;
+  var cpa = codepages.Default.Attrs;
 
-  let a = WBXML.Writer.a;
-  let str_t = WBXML.Writer.str_t;
+  var a = WBXML.Writer.a;
+  var str_t = WBXML.Writer.str_t;
 
-  let w = new WBXML.Writer('1.1', 1, 'UTF-8',
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8',
                            ['(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
                             '\u253b\u2501\u253b']);
   w.stag(cp.ROOT)
@@ -339,7 +350,7 @@ function test_writer_utf8() {
      .etag()
    .etag();
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD',
         attributes: { TYPE: '(\u256f\u00b0\u25a1\u00b0)\u256f\ufe35',
@@ -355,12 +366,12 @@ function test_writer_utf8() {
     { type: 'ETAG' },
   ];
 
-  let r = new WBXML.Reader(w, codepages);
+  var r = new WBXML.Reader(w, codepages);
   verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
-}
+});
 
-function test_writer_unexpected_etag() {
-  let codepages = {
+it('unexpected etag', function test_writer_unexpected_etag() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -369,19 +380,19 @@ function test_writer_unexpected_etag() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
+  var cp = codepages.Default.Tags;
 
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .tag(cp.CARD)
    .etag();
-  assert_throws(function() {
+  assert.throws(function() {
      w.etag();
   }, Error);
-}
+});
 
-function test_writer_check_etag() {
-  let codepages = {
+it('check etag', function test_writer_check_etag() {
+  var codepages = {
     Default: {
       Tags: {
         ROOT: 0x05,
@@ -390,29 +401,31 @@ function test_writer_check_etag() {
     }
   };
   WBXML.CompileCodepages(codepages);
-  let cp = codepages.Default.Tags;
+  var cp = codepages.Default.Tags;
 
   // Test that checking the tag in etag works.
-  let w = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .stag(cp.CARD)
      .etag(cp.CARD)
    .etag(cp.ROOT);
 
-  let expectedNodes = [
+  var expectedNodes = [
     { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
       { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
       { type: 'ETAG' },
     { type: 'ETAG' },
   ];
-  let r = new WBXML.Reader(w, codepages);
-  verify_document(r, '1.1', 1, 'US-ASCII', expectedNodes);
+  var r = new WBXML.Reader(w, codepages);
+  verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
 
   // Test that checking the tag in etag fails when you specify the wrong tag.
-  let w2 = new WBXML.Writer('1.1', 1, 'US-ASCII');
+  var w2 = new WBXML.Writer('1.1', 1, 'UTF-8');
   w.stag(cp.ROOT)
      .stag(cp.CARD);
-  assert_throws(function() {
+  assert.throws(function() {
     w.etag(cp.ROOT);
   }, Error);
-}
+});
+
+}); // describe
