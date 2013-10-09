@@ -740,6 +740,7 @@
       this._blobs = [];
     else
       this._blobs = null;
+    this.dataType = dataType || 'arraybuffer';
     this._rawbuf = new ArrayBuffer(1024);
     this._buffer = new Uint8Array(this._rawbuf);
     this._pos = 0;
