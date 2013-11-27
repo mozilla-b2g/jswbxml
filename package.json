@@ -6,7 +6,6 @@
   "devDependencies": {
     "mocha": "~1.12",
     "chai": "~1.7",
-    "w3c-blob": ">= 0.0.1",
     "stringencoding": ">= 0.0.0"
   },
   "scripts": {

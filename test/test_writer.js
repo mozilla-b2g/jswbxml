@@ -18,11 +18,15 @@
 var mocha = require('mocha'),
     assert = require('chai').assert,
     WBXML = require('../wbxml'),
-    helpers = require('./helpers');
+    helpers = require('./helpers'),
+    blobMod = require('../blob');
 
 var verify_document = helpers.verify_document;
 var verify_subdocument  = helpers.verify_subdocument;
 var binify = helpers.binify;
+
+var Blob = blobMod.Blob;
+var FileReader = blobMod.FileReader;
 
 describe('writer', function() {
 
@@ -426,6 +430,127 @@ it('check etag', function test_writer_check_etag() {
   assert.throws(function() {
     w.etag(cp.ROOT);
   }, Error);
+});
+
+it('produces blobs', function test_writer_create_blobs(done) {
+  // This is the 'basic' test modified to eat Blobs
+  var codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8', null, 'blob');
+  var cp = codepages.Default.Tags;
+  w.stag(cp.ROOT)
+     .tag(cp.CARD)
+     .tag(cp.CARD, '0')
+   .etag();
+
+  var expectedNodes = [
+    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
+      { type: 'TAG', tag: cp.CARD, localTagName: 'CARD' },
+      { type: 'STAG', tag: cp.CARD, localTagName: 'CARD' },
+        { type: 'TEXT', textContent: '0' },
+      { type: 'ETAG' },
+    { type: 'ETAG' },
+  ];
+
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    var r = new WBXML.Reader(new Uint8Array(fileReader.result), codepages);
+    verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+    done();
+  };
+  var blob = w.blob;
+  assert.equal(blob._parts.length, 1);
+  assert(blob._parts[0] instanceof Uint8Array);
+  fileReader.readAsArrayBuffer(blob);
+});
+
+it('creates super blobs using opaque', function test_write_opaque_blobs(done) {
+  // This is the 'opaque' test modified to use Blobs
+  var codepages = {
+    Default: {
+      Tags: {
+        ROOT: 0x05,
+        CARD: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+  var cp = codepages.Default.Tags;
+
+  var w = new WBXML.Writer('1.1', 1, 'UTF-8', null, 'blob');
+  w.stag(cp.ROOT)
+     // Blob that's made up of a String
+     .opaque(new Blob(['string']))
+     // Blob that's made up of 2 strings
+     .opaque(new Blob(['stra', 'ng']))
+     // Blob that's holding a uint8 TypedArray
+     .opaque(new Blob([binify('strung')]))
+     // Just put in a string
+     .opaque('strunged')
+   .etag();
+
+  var expectedNodes = [
+    { type: 'STAG', tag: cp.ROOT, localTagName: 'ROOT' },
+      { type: 'OPAQUE', data: binify('string') },
+      { type: 'OPAQUE', data: binify('strang') },
+      { type: 'OPAQUE', data: binify('strung') },
+      { type: 'OPAQUE', data: binify('strunged') },
+    { type: 'ETAG' },
+  ];
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    var r = new WBXML.Reader(new Uint8Array(fileReader.result), codepages);
+    verify_document(r, '1.1', 1, 'UTF-8', expectedNodes);
+    done();
+  };
+  var blob = w.blob;
+  assert.equal(blob._parts.length, 7);
+  assert(blob._parts[0] instanceof Uint8Array);
+  assert(blob._parts[1] instanceof Blob);
+  assert(blob._parts[2] instanceof Uint8Array);
+  assert(blob._parts[3] instanceof Blob);
+  assert(blob._parts[4] instanceof Uint8Array);
+  assert(blob._parts[5] instanceof Blob);
+  assert(blob._parts[6] instanceof Uint8Array);
+
+  fileReader.readAsArrayBuffer(blob);
+});
+
+it('tracks first written tag name', function test_first_tag_name() {
+  var codepages = {
+    Default: {
+      Tags: {
+        FOO: 0x05,
+        BAR: 0x06,
+      },
+    }
+  };
+  WBXML.CompileCodepages(codepages);
+
+  var cp = codepages.Default.Tags;
+
+  var wFoo = new WBXML.Writer('1.1', 1, 'UTF-8');
+  wFoo.stag(cp.FOO)
+        .tag(cp.BAR)
+        .tag(cp.BAR, '0')
+      .etag();
+
+  var wBar = new WBXML.Writer('1.1', 1, 'UTF-8');
+  wBar.stag(cp.BAR)
+        .tag(cp.FOO)
+        .tag(cp.FOO, '0')
+      .etag();
+
+  assert.equal(wFoo.rootTag, cp.FOO, 'first tag is FOO');
+  assert.equal(wBar.rootTag, cp.BAR, 'first tag is BAR');
 });
 
 }); // describe
