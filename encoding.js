@@ -2259,7 +2259,7 @@
    * @param {{fatal: boolean}=} options
    */
   function TextEncoder(opt_encoding, options) {
-    if (!this || this === global) {
+    if (!this || !this.encode || this === global) {
       return new TextEncoder(opt_encoding, options);
     }
     opt_encoding = opt_encoding ? String(opt_encoding) : DEFAULT_ENCODING;
@@ -2323,7 +2323,7 @@
    * @param {{fatal: boolean}=} options
    */
   function TextDecoder(opt_encoding, options) {
-    if (!this || this === global) {
+    if (!this || !this.decode || this === global) {
       return new TextDecoder(opt_encoding, options);
     }
     opt_encoding = opt_encoding ? String(opt_encoding) : DEFAULT_ENCODING;
