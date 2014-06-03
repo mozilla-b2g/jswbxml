@@ -33,6 +33,22 @@
 }(this, function() {
   'use strict';
 
+  /**
+   * Create a new EventParser. EventParsers are objects that allow you to listen
+   * for a certain path to be emitted from an WBXML Reader, sort of like a
+   * simplified version of XPath.
+   *
+   * Events are registered with the |on| method (or |onend| if you want to
+   * listen for a closing tag), and you can register events inside of other
+   * event handlers, allowing you to handle sub-nodes easily.
+   *
+   * The |on| and |onend| methods take paths, which are arrays of tags, similar
+   * to an XPath query. Normally, each element is the tag's numeric ID, but you
+   * can pass in an array of tags for a particular to match any of them at that
+   * level. You can also pass '*' to match any tag. For non-tag entities, you
+   * can use the strings 'text', 'ext', 'pi', and 'opaque' to match text nodes,
+   * extension nodes, processing instructions, or opaque blobs, respectively.
+   */
   function EventParser() {
     this._running = false;
     this._fullPath = null;
@@ -45,14 +61,30 @@
 
     // An array of nested listener sets; each element contains a |depth| and
     // an array of |listeners|.
-    this._activeListeners = [];
+    this._innerListeners = [];
   }
 
   EventParser.prototype = {
+    /**
+     * Register a listener for a particular path. Fires when the reader emits
+     * the opening tag in question.
+     *
+     * @param {Array} path The path to look for.
+     * @param {Function} callback The function for handling the event; takes the
+     *   found node as an argument.
+     */
     on: function(path, callback) {
       this._on(path, 'open', callback);
     },
 
+    /**
+     * Register a listener for a particular path. Fires when the reader emits
+     * the closing tag in question.
+     *
+     * @param {Array} path (optional) The path to look for.
+     * @param {Function} callback The function for handling the event; takes the
+     *   found node as an argument.
+     */
     onend: function(path, callback) {
       if (typeof path === 'function') {
         this._on([], 'close', path);
@@ -61,6 +93,15 @@
       }
     },
 
+    /**
+     * Register a listener for a particular path.
+     *
+     * @param {Array} path The path to look for.
+     * @param {String} mode Either 'open' or 'close', depending on whether the
+     *   event should be fired on the opening or closing tag.
+     * @param {Function} callback The function for handling the event; takes the
+     *   found node as an argument.
+     */
     _on: function(path, mode, callback) {
       var listeners;
 
@@ -79,6 +120,11 @@
       });
     },
 
+    /**
+     * Parse a WBXML document and start firing events as appropriate.
+     *
+     * @param {WBXML.Reader} reader The document's Reader.
+     */
     run: function(reader) {
       this._fullPath = [];
       this._running = true;
@@ -115,13 +161,27 @@
         if (node.type !== 'STAG') {
           this._fireListeners(node, 'close');
           this._fullPath.pop();
-          this._clearListeners();
+
+          // Since we just popped an element off our path, clear out any nested
+          // listeners that are no longer relevant.
+          this._innerListeners = this._innerListeners.filter(
+            function(listener) {
+              return listener.depth <= this._fullPath.length;
+            }.bind(this)
+          );
         }
       }
 
       this._running = false;
     },
 
+    /**
+     * Fire all the listeners for a particular node.
+     *
+     * @param {Node} node The node.
+     * @param {String} mode Either 'open' or 'closed', depending on whether the
+     *   tag is being opened or closed.
+     */
     _fireListeners: function(node, mode) {
       var fireIfMatched = function(listener) {
         if (mode !== listener.mode ||
@@ -133,35 +193,38 @@
           depth: this._fullPath.length,
           listeners: [],
         };
-        this._activeListeners.push(this._currentListener);
+        this._innerListeners.push(this._currentListener);
         listener.callback(node);
         this._currentListener = null;
       }.bind(this);
 
       this._listeners.forEach(fireIfMatched);
-      this._activeListeners.forEach(function(active) {
-        active.listeners.forEach(fireIfMatched);
+      this._innerListeners.forEach(function(inner) {
+        inner.listeners.forEach(fireIfMatched);
       });
     },
 
-    _clearListeners: function() {
-      var fullPath = this._fullPath;
-      this._activeListeners = this._activeListeners.filter(function(listener) {
-        return listener.depth <= fullPath.length;
-      });
-    },
-
-    _matchPath: function(a, b) {
-      return a.length === b.length && a.every(function(val, i) {
-        if (b[i] === '*') {
+    /**
+     * Determine if an XML path matches our expectation.
+     *
+     * @param {Array} actual The actual path.
+     * @param {Array} expected The expected path.
+     * @return {Boolean} True if they match, false otherwise.
+     */
+    _matchPath: function(actual, expected) {
+      if (actual.length !== expected.length) {
+        return false;
+      }
+      return actual.every(function(val, i) {
+        if (expected[i] === '*') {
           return true;
-        } else if (Array.isArray(b[i])) {
-          return b[i].indexOf(val) !== -1;
+        } else if (Array.isArray(expected[i])) {
+          return expected[i].indexOf(val) !== -1;
         } else {
-          return val === b[i];
+          return val === expected[i];
         }
       });
-    },
+    }
   };
 
   return EventParser;
