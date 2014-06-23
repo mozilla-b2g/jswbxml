@@ -28,13 +28,13 @@
   }
   // browser environment, no AMD loader
   else {
-    root.WBXMLEventParser = factory();
+    root.WBXMLPathReader = factory();
   }
 }(this, function() {
   'use strict';
 
   /**
-   * Create a new EventParser. EventParsers are objects that allow you to listen
+   * Create a new PathReader. PathReaders are objects that allow you to listen
    * for a certain path to be emitted from an WBXML Reader, sort of like a
    * simplified version of XPath.
    *
@@ -49,7 +49,7 @@
    * can use the strings 'text', 'ext', 'pi', and 'opaque' to match text nodes,
    * extension nodes, processing instructions, or opaque blobs, respectively.
    */
-  function EventParser() {
+  function PathReader() {
     this._running = false;
     this._fullPath = null;
 
@@ -64,7 +64,7 @@
     this._innerListeners = [];
   }
 
-  EventParser.prototype = {
+  PathReader.prototype = {
     /**
      * Register a listener for a particular path. Fires when the reader emits
      * the opening tag in question.
@@ -227,5 +227,5 @@
     }
   };
 
-  return EventParser;
+  return PathReader;
 }));
