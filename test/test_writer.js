@@ -1,4 +1,4 @@
-/* Copyright 2012 Mozilla Foundation
+/* Copyright 2012-2014 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ var mocha = require('mocha'),
     blobMod = require('../blob');
 
 var verify_document = helpers.verify_document;
-var verify_subdocument  = helpers.verify_subdocument;
 var binify = helpers.binify;
 
 var Blob = blobMod.Blob;

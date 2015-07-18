@@ -1,4 +1,4 @@
-/* Copyright 2012 Mozilla Foundation
+/* Copyright 2012-2014 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,6 @@ var chai = require('chai');
 var assert = chai.assert;
 // We want backtraces since we don't really use messages
 chai.Assertion.includeStack = true;
-
-function print(s) {
-  var output = document.getElementById('output');
-  output.textContent += s;
-}
 
 // Typed arrays don't compare well out of box; == and === don't work and deep
 // equals will be too deep because it will go into the buffer instances,
@@ -126,20 +121,6 @@ function verify_document(reader, expectedVersion, expectedPid, expectedCharset,
   }
 }
 
-function verify_subdocument(actual, expected) {
-  verify_node(actual, expected);
-  if (actual.children || expected.children) {
-    // 'children' may be omitted if empty; need to normalize
-    var expectedKids = expected.children || [];
-    assert.equal(actual.children.length, expectedKids.length);
-    for (var i = 0; i < actual.children.length; i++) {
-      var actualChild = actual.children[i];
-      var expectedChild = expectedKids[i];
-      verify_subdocument(actualChild, expectedChild);
-    }
-  }
-}
-
 /**
  * Create a typed array from an array or a string that we treat as a binary
  * string.
@@ -157,6 +138,6 @@ function binify(src) {
   return dest;
 }
 
+exports.verify_node = verify_node;
 exports.verify_document = verify_document;
-exports.verify_subdocument = verify_subdocument;
 exports.binify = binify;

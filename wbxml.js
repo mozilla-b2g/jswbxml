@@ -1,4 +1,4 @@
-/* Copyright 2012 Mozilla Foundation
+/* Copyright 2012-2014 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1095,104 +1095,6 @@
      */
     get rootTag() {
       return this._rootTagValue;
-    },
-  };
-
-  function EventParser() {
-    this.listeners = [];
-    this.onerror = function(e) { throw e; };
-  }
-  exports.EventParser = EventParser;
-  EventParser.prototype = {
-    addEventListener: function(path, callback) {
-      this.listeners.push({path: path, callback: callback});
-    },
-
-    _pathMatches: function(a, b) {
-      return a.length === b.length && a.every(function(val, i) {
-        if (b[i] === '*')
-          return true;
-        else if (Array.isArray(b[i])) {
-          return b[i].indexOf(val) !== -1;
-        }
-        else
-          return val === b[i];
-      });
-    },
-
-    run: function(reader) {
-      var fullPath = [];
-      var recPath = [];
-      var recording = 0;
-
-      var doc = reader.document;
-      var doclen = doc.length;
-      var listeners = this.listeners, iListener, listener;
-      for (var iNode = 0; iNode < doclen; iNode++) {
-        var node = doc[iNode];
-        if (node.type === 'TAG') {
-          fullPath.push(node.tag);
-          for (iListener = 0; iListener < listeners.length; iListener++) {
-            listener = listeners[iListener];
-            if (this._pathMatches(fullPath, listener.path)) {
-              node.children = [];
-              try {
-                listener.callback(node);
-              }
-              catch (e) {
-                if (this.onerror)
-                  this.onerror(e);
-              }
-            }
-          }
-
-          fullPath.pop();
-        }
-        else if (node.type === 'STAG') {
-          fullPath.push(node.tag);
-
-          for (iListener = 0; iListener < listeners.length; iListener++) {
-            listener = listeners[iListener];
-            if (this._pathMatches(fullPath, listener.path)) {
-              recording++;
-            }
-          }
-        }
-        else if (node.type === 'ETAG') {
-          for (iListener = 0; iListener < listeners.length; iListener++) {
-            listener = listeners[iListener];
-            if (this._pathMatches(fullPath, listener.path)) {
-              recording--;
-              try {
-                listener.callback(recPath[recPath.length-1]);
-              }
-              catch (e) {
-                if (this.onerror)
-                  this.onerror(e);
-              }
-            }
-          }
-
-          fullPath.pop();
-        }
-
-        if (recording) {
-          if (node.type === 'STAG') {
-            node.type = 'TAG';
-            node.children = [];
-            if (recPath.length)
-              recPath[recPath.length-1].children.push(node);
-            recPath.push(node);
-          }
-          else if (node.type === 'ETAG') {
-            recPath.pop();
-          }
-          else {
-            node.children = [];
-            recPath[recPath.length-1].children.push(node);
-          }
-        }
-      }
     },
   };
 
