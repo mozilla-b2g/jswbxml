@@ -920,7 +920,7 @@
 
     _writeAttr: function(attr) {
       if (!(attr instanceof Writer.Attribute))
-        throw new Error('Expected an Attribute object');
+        throw new Error('Expected an Attribute object, not: ' + attr);
       if (attr.isValue)
         throw new Error("Can't use attribute value constants here");
 
