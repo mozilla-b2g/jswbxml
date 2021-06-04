@@ -14,16 +14,8 @@
  */
 
 (function (root, factory) {
-  // node.js
-  if (typeof exports === 'object') {
-    module.exports = factory();
-    this.Blob = require('./blob').Blob;
-    var stringencoding = require('stringencoding');
-    this.TextEncoder = stringencoding.TextEncoder;
-    this.TextDecoder = stringencoding.TextDecoder;
-  }
   // browser environment, AMD loader
-  else if (typeof define === 'function' && define.amd) {
+  if (typeof define === 'function' && define.amd) {
     define(factory);
   }
   // browser environment, no AMD loader
